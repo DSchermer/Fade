@@ -1,3 +1,12 @@
+# >>> STATUS (2026-10-08): paid Apple account not enrolled yet <<<
+The Supabase URL and publishable key are already in the app. Until your Apple account is active you can test everything except the Apple button, using the **debug email login** in the simulator:
+1. Supabase: run `supabase/migrations/20261008000002_usernames.sql` (SQL Editor). **Authentication → Sign In / Providers → Email**: make sure it is enabled and **Confirm email** is OFF.
+2. `git pull`, `cd ios && xcodegen`, open the project, select your Personal Team under Signing & Capabilities (as in Milestone 1), pick a simulator, Run.
+3. In the orange "Debug only" box enter `test1@example.com` and a password of 6+ characters → **Sign in / create test account** → pick a username → you land on "Hi, @name". Gear → change price format, sign out, make a `test2@example.com` account and check that reusing test1's username is refused.
+4. When the Apple account is active: uncomment the `entitlements` block in `ios/project.yml`, add your Team ID there (`DEVELOPMENT_TEAM`), re-run `xcodegen`, and do section 1 steps 2 and 4 below to test the Apple button on a real iPhone.
+
+---
+
 # Setup — Milestone 2 (real sign-in) — do these on your Mac
 
 ## 1. Supabase

@@ -15,10 +15,11 @@ targets:
     sources: [Fade]
     dependencies:
       - package: Supabase
-    entitlements:
-      path: Fade/Fade.entitlements
-      properties:
-        com.apple.developer.applesignin: [Default]
+    # TURN ON once the paid Apple Developer account is active (a free Personal Team can't sign it):
+    # entitlements:
+    #   path: Fade/Fade.entitlements
+    #   properties:
+    #     com.apple.developer.applesignin: [Default]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade
