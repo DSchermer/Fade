@@ -10,5 +10,6 @@ trap 'run -d postgres -c "drop database if exists $db" >/dev/null 2>&1 || true' 
 run -d postgres -c "create database $db" >/dev/null
 run -d "$db" < "$here/00_local_auth_stub.sql" >/dev/null
 for f in "$here"/../migrations/*.sql; do run -d "$db" < "$f" >/dev/null; done
+cd "$here"   # tests load fixtures by relative path
 for t in "$here"/*_test.sql; do run -o /dev/null -d "$db" < "$t"; done
 echo "All SQL tests passed."

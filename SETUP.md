@@ -1,3 +1,27 @@
+# Setup — Milestone 4 (real games from Polymarket)
+
+## 1. Supabase (SQL Editor, one query at a time)
+1. Paste all of `supabase/migrations/20261008000004_markets.sql` → **Run**.
+2. Paste all of `supabase/ops/schedule_market_sync.sql` → **Run**. This switches on two Supabase extensions (`http`, `pg_cron`) and schedules the jobs (games every 15 minutes, start-time/result checks every 5 minutes). If it complains about an extension, turn on **http** and **pg_cron** under **Database → Extensions**, then run it again.
+3. Load the first batch of games now (don't wait 15 minutes). Run just this line and be patient — it can take up to a minute:
+   `select public.sync_markets();`
+   It prints a number (how many markets it stored).
+4. Check: `select league, market_type, count(*) from markets group by 1, 2 order by 1, 2;` — you should see rows for nfl/nba/mlb/nhl (depending on the season, some leagues may have none). Then `select * from sync_log order by id desc limit 10;` — the newest row should say `discover` with `ok = true`. If any row has `ok = false`, copy its `detail` text to me.
+
+## 2. App
+`git pull`, `cd ios && xcodegen` (re-pick your Personal Team if asked), Run.
+
+## What to tap to test Milestone 4
+1. Sign in, open any group, tap **Browse games**.
+2. You should see upcoming games grouped by day with start times in **your** time zone, for example "Celtics vs. Cavaliers · NBA · 7:00 PM".
+3. Tap the league tabs (**NFL / NBA / MLB / NHL**) — the list filters.
+4. Tap a game: **Moneyline**, then **Spread** and **Over / Under** each show one main line, with **More lines (N)** that expands to the alternate lines.
+5. Compare one game's start time with polymarket.com's sports page — it should match.
+6. Pull down on the list to refresh.
+7. Safety check: in the SQL Editor run `select * from check_ledger_integrity();` (no rows) — this milestone doesn't touch coins.
+
+---
+
 # Setup — Milestone 3 (groups)
 
 1. **Supabase → SQL Editor → New query**: paste all of `supabase/migrations/20261008000003_groups.sql` and **Run**.

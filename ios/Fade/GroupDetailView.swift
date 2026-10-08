@@ -37,6 +37,14 @@ struct GroupDetailView: View {
                 Text("Anyone with this code can join. Invite links that open the app directly come later.")
             }
 
+            Section("Bets") {
+                NavigationLink {
+                    GamesView()
+                } label: {
+                    Label("Browse games", systemImage: "sportscourt")
+                }
+            }
+
             Section("Members (\(members.count))") {
                 ForEach(members) { member in
                     HStack {

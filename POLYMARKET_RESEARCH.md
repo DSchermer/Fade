@@ -82,3 +82,15 @@ Anything else, including an unknown status string, malformed JSON, or a missing 
 ## 6. What I need from you
 1. Read the Polymarket Terms (or ask them) and tell me it's OK, or tell me to plan for a different data source.
 2. Confirm you are comfortable with the polling-only v1 approach.
+
+---
+
+## 7. Update — what building Milestone 4 taught us (2026-10-08, live data)
+
+- **A real disputed market now exists** (answering the earlier gap). Market `5361542` "Tampa Bay Rays vs. New York Yankees: O/U 7.5" has `"umaResolutionStatuses": "[\"proposed\", \"proposed\", \"disputed\", \"disputed\", \"proposed\", \"proposed\"]"` and ended `umaResolutionStatus: "resolved"`, prices `["0","1"]`. So the word `disputed` is confirmed, and a disputed market on a sports game can resolve within hours. Saved as `supabase/tests/fixtures/resolved_after_dispute.json`.
+- **`umaResolutionStatuses`** (plural) is a JSON-in-a-string history of every status the market passed through. We store it for the audit trail. The single field `umaResolutionStatus` is the *current* status (`null` before any proposal, then `proposed`, `disputed`, `resolved`).
+- **Many alternate lines.** One NFL game can have 30+ spread markets and 20+ total markets (every half-point). We store them all; the app shows the line whose Polymarket price is nearest 50/50 first and tucks the rest under "More lines". Prices are used only for that ordering, never for odds.
+- **Spreads come in pairs per team**, e.g. "Spread: Cowboys (-9.5)" (outcomes Cowboys / Buccaneers) and "Spread: Buccaneers (-1.5)" are separate markets.
+- **Paging:** `limit` is 100 per call; we page up to 12 pages per league/type and stop at the first short page.
+- **Filters that worked:** `closed=false`, `tag_id`, `sports_market_types`, `order=endDate&ascending=true`, `end_date_max`. A market's start time is `gameStartTime`; `endDate` can differ (a postponed game kept an `endDate` a week after its start).
+- **Not verified from inside Supabase:** whether Polymarket answers Supabase's servers the same way it answered ours. The sync records every failure in the `sync_log` table so we will see it immediately.
