@@ -24,3 +24,11 @@ You don't need to copy any keys yet; the app connects to Supabase in Milestone 2
 4. Tap the **gear** (top right) → **About coins & help** opens the same sheet; **Sign out** returns you to sign-in.
 
 (Local database tests, run in the cloud workspace, not on your Mac: `supabase/tests/run.sh`.)
+
+## If the app won't launch in the simulator
+Seen on 2026-10-08: "Application launch for 'com.dschermer.fade' did not return a process handle" (Xcode 27 beta building for an iOS 26.1 simulator). Try these in order, re-running after each:
+1. In Xcode: **Product → Clean Build Folder** (⇧⌘K), then Run again.
+2. Pull the latest from git, then `cd ios && xcodegen` again (this adds standard Info.plist keys), and Run.
+3. In the Simulator app: **Device → Erase All Content and Settings…**, then Run again.
+4. Pick a simulator whose iOS version matches your Xcode's SDK (the device picker at the top; **Window → Devices and Simulators** to add one). If none is installed: **Xcode → Settings → Components** to download the iOS 27 simulator.
+5. Still failing? In Xcode run it again and copy the text from the **debug console** (bottom panel) and send it to me. If the app crashed, Xcode shows the reason there.
