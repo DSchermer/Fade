@@ -1,3 +1,22 @@
+# Setup — Milestone 3 (groups)
+
+1. **Supabase → SQL Editor → New query**: paste all of `supabase/migrations/20261008000003_groups.sql` and **Run**.
+2. `git pull`, then `cd ios && xcodegen`, open the project (re-pick your Personal Team under Signing & Capabilities if asked), and Run in the simulator.
+
+## What to tap to test Milestone 3
+1. Sign in as `test1@example.com` (debug box). The home screen says **No groups yet**.
+2. Tap **Create a group**. Name it `Friday Crew`, leave the starting balance at 100, buybacks **Unlimited**, then **Create**. The group appears in the list with **100 coins**.
+3. Tap the group. You should see: your balance (100 total, 100 available), an **invite code** (8 letters/numbers), you as the only member marked "owner", and the group rules.
+4. Tap **Copy** (button changes to "Copied"). Write the code down.
+5. Go back, tap the **gear → Sign out**. Sign in as `test2@example.com` (new account → pick a username if asked).
+6. Tap **+ → Join with a code**, type the code (lower case is fine) → **Join**. `Friday Crew` appears with **100 coins**.
+7. Open it: **Members (2)** lists both usernames with 100 each.
+8. Try **+ → Join with a code** with a made-up code: you should see "No group found with that code."
+9. Back as test2, **+ → Create a group** with **Limited per week** (a stepper appears) and the buyback amount toggle off with a different amount (say 50). Open that group and check "Group rules".
+10. In Supabase **Table Editor**: `groups` (your two groups), `group_members` (balances), `ledger` (one `grant` row per member). In the SQL Editor run `select * from check_ledger_integrity();` — it must return **no rows**.
+
+---
+
 # >>> STATUS (2026-10-08): paid Apple account not enrolled yet <<<
 The Supabase URL and publishable key are already in the app. Until your Apple account is active you can test everything except the Apple button, using the **debug email login** in the simulator:
 1. Supabase: run `supabase/migrations/20261008000002_usernames.sql` (SQL Editor). **Authentication → Sign In / Providers → Email**: make sure it is enabled and **Confirm email** is OFF.

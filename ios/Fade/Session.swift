@@ -125,12 +125,23 @@ final class Session {
 
     // MARK: Error text
 
-    private static func describe(_ error: Error) -> String {
+    static func describe(_ error: Error) -> String {
         let raw = (error as? PostgrestError)?.message ?? error.localizedDescription
-        if raw.contains("username_taken") { return "That username is already taken." }
-        if raw.contains("username_invalid") { return "Use 3–20 letters, numbers, or underscores." }
-        if raw.contains("username_reserved") { return "That username isn't available." }
-        if raw.contains("account_disabled") { return "This account has been disabled." }
+        let known: [(String, String)] = [
+            ("username_taken", "That username is already taken."),
+            ("username_invalid", "Use 3–20 letters, numbers, or underscores."),
+            ("username_reserved", "That username isn't available."),
+            ("account_disabled", "This account has been disabled."),
+            ("profile_required", "Pick a username first."),
+            ("group_not_found", "No group found with that code."),
+            ("invalid_group_name", "Group names must be 1–60 characters."),
+            ("invalid_starting_balance", "Starting balance must be between 1 and 1,000,000 coins."),
+            ("invalid_buyback_amount", "Buyback amount must be between 1 and 1,000,000 coins."),
+            ("invalid_buybacks_per_week", "Buybacks per week must be between 1 and 50."),
+            ("invalid_buyback_policy", "Pick a buyback policy."),
+            ("not_signed_in", "You're signed out. Please sign in again."),
+        ]
+        for (code, message) in known where raw.contains(code) { return message }
         return raw
     }
 }

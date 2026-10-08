@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(Session.self) private var session
+    @Environment(GroupStore.self) private var groups
     @Environment(\.dismiss) private var dismiss
     @State private var showLegal = false
 
@@ -34,6 +35,7 @@ struct SettingsView: View {
                     Button("About coins & help") { showLegal = true }
                     Button("Sign out", role: .destructive) {
                         Task {
+                            groups.clear()
                             await session.signOut()
                             dismiss()
                         }
