@@ -8,6 +8,7 @@ struct FadeApp: App {
         WindowGroup {
             RootView()
                 .environment(session)
+                .task { await session.restore() }
         }
     }
 }

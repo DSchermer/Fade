@@ -4,15 +4,27 @@ options:
   bundleIdPrefix: com.dschermer
   deploymentTarget:
     iOS: "17.0"
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: 2.0.0
 targets:
   Fade:
     type: application
     platform: iOS
     sources: [Fade]
+    dependencies:
+      - package: Supabase
+    entitlements:
+      path: Fade/Fade.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade
         PRODUCT_NAME: Fade
+        DEVELOPMENT_TEAM: ""   # <- your 10-character Apple Team ID (see SETUP.md)
+        CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"

@@ -117,3 +117,4 @@ Android, live betting, parlays, player props, any real-money purchase or prize, 
 - Rejoining a group gives 0 coins. Leaving is blocked while you have unsettled bets in that group.
 - Friends: username requests + shared-group suggestions. Moderation: Supabase dashboard + optional email alert.
 - Specs live in `SPEC.md` and `MILESTONES.md`; the plan is approved and work proceeds milestone by milestone.
+- Milestone 2 (sign-in): native Sign in with Apple via Supabase `signInWithIdToken` (no name/email requested). Username is picked once after first sign-in, stored lowercase, can be changed. A DEBUG-only email+password login exists for multi-user testing; **the Supabase Email provider must be switched OFF before TestFlight** (Apple is the only real login).
