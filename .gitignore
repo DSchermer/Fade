@@ -1,0 +1,13 @@
+# macOS / Xcode
+.DS_Store
+xcuserdata/
+DerivedData/
+*.xcuserstate
+build/
+# XcodeGen generates this from ios/project.yml
+ios/Fade.xcodeproj/
+# Secrets — never commit
+.env
+*.p8
+supabase/.env
+supabase/.temp/
