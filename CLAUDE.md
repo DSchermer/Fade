@@ -109,3 +109,11 @@ Users can turn each type on or off.
 
 ## Out of scope for v1
 Android, live betting, parlays, player props, any real-money purchase or prize, public/discoverable groups, and a full group chat.
+
+## Decisions log
+- 2026-10-08: iOS 17 minimum. Bundle ID `com.dschermer.fade`. App name "Fade". No domain yet: invites use `fade://join/CODE` + manual code until a domain exists.
+- Polymarket public API use approved by owner; settle only on `closed` + `umaResolutionStatus == "resolved"` + terminal prices (see `POLYMARKET_RESEARCH.md`).
+- Votes: 24h window; pass = yes > no with quorum `min(members, max(2, ceil(25% of members)))`; early close when yes > half of all members.
+- Rejoining a group gives 0 coins. Leaving is blocked while you have unsettled bets in that group.
+- Friends: username requests + shared-group suggestions. Moderation: Supabase dashboard + optional email alert.
+- Specs live in `SPEC.md` and `MILESTONES.md`; the plan is approved and work proceeds milestone by milestone.

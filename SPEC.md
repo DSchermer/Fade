@@ -1,6 +1,6 @@
 # Fade — SPEC (draft for approval)
 
-Status: **DRAFT. No code has been written.** Items marked **[DECIDE]** are choices I need from you; each has my recommendation. Polymarket findings are in `POLYMARKET_RESEARCH.md`.
+Status: **APPROVED decisions recorded 2026-10-08** (see §14). Milestone 1 in progress. Polymarket findings are in `POLYMARKET_RESEARCH.md`.
 
 ## 0. Plain-language architecture
 
@@ -18,7 +18,7 @@ Status: **DRAFT. No code has been written.** Items marked **[DECIDE]** are choic
 
 Rules of thumb: the app never writes balances; the app never talks to Polymarket; secrets live only in Supabase.
 
-**Recommended iOS target: iOS 17.** It gives us the modern SwiftUI data model (`@Observable`), is supported by the large majority of active iPhones, and iOS 16 and older would force older, clunkier code. [DECIDE: ok?]
+**Recommended iOS target: iOS 17.** It gives us the modern SwiftUI data model (`@Observable`), is supported by the large majority of active iPhones, and iOS 16 and older would force older, clunkier code. **Decided: yes.**
 
 **Accounts you will need and when:**
 - **Supabase (free tier)** — needed at Milestone 1 (backend + database). I'll walk you through it.
@@ -85,7 +85,7 @@ All are `SECURITY DEFINER` Postgres functions that lock the rows they touch (`SE
 
 | Function | What it does |
 |---|---|
-| `create_group`, `join_group(code)` | Creates the group/season 1; join grants the starting balance (`grant`). Rejoining a group you left returns you with 0 and no new grant (**[DECIDE]**: or a fresh start balance?). |
+| `create_group`, `join_group(code)` | Creates the group/season 1; join grants the starting balance (`grant`). **Decided:** rejoining a group you left returns you with 0 coins and no new grant (you are then busted and can use the buyback policy). |
 | `post_offer(group, market, outcome, price, shares)` | Requires market `open`, `now < game_start`, `accepting`, and `available ≥ shares×price`. Locks escrow. |
 | `take_offer(offer, shares)` | Requires `1 ≤ shares ≤ shares_open`, taker ≠ maker, market still open and before start, `available ≥ shares×(100−price)`. Creates a `bet`. Row-locking the offer prevents two takers over-filling it. |
 | `cancel_offer(offer)` | Maker only, before start; refunds escrow for **unfilled** shares only. |
@@ -142,8 +142,8 @@ Details and API specifics: `POLYMARKET_RESEARCH.md`.
 ## 8. Votes
 
 - Any active member can call a **reset** vote or (vote-policy groups) a **buyback** vote; a busted member requests their own buyback vote. Only one open vote of each kind per group (per subject for buyback).
-- **Window: 24 hours** (default, [DECIDE]). Caller's yes is counted automatically.
-- **Pass rule** [DECIDE]: when the window closes, passes if **yes > no among votes cast** (majority of voters, as CLAUDE.md says). Tie fails. It also closes **early** once yes votes exceed half of *all* active members (it can't be overturned). Zero-quorum caveat: in a 20-person group, two people could pass a reset with a 2–0 vote. Alternative is a minimum quorum (e.g. at least 3 voters or 25% of members). **My recommendation: add the quorum**; say if you'd rather keep it exactly "majority of voters".
+- **Window: 24 hours** (**decided**). Caller's yes is counted automatically.
+- **Pass rule (decided):** when the window closes, a vote passes if **yes > no among votes cast** AND a **quorum** was reached. Tie fails. Quorum = `min(active members, max(2, ceil(25% of active members)))` votes cast (so a 2-0 vote can't reset a 20-person group: it needs 5 voters; a 1-person group needs 1). It also closes **early** once yes votes exceed half of *all* active members (it can't be overturned).
 - **Reset passing** (one transaction): cancel every open offer and refund unfilled shares → void all unsettled bets and refund both sides (including games already ended but not finalised) → snapshot standings to `season_standings` and add each member's season net profit and W-L to their lifetime totals → burn old balances, mint fresh starting balances, clear buyback counts → start season N+1.
 - During an open reset vote betting continues, with a group-wide banner (per CLAUDE.md).
 - Buyback vote passing grants the buyback to the requester immediately.
@@ -157,12 +157,12 @@ Details and API specifics: `POLYMARKET_RESEARCH.md`.
 
 ## 10. Friends
 
-Username search → request → accept. Suggestions: people who share a group with you and aren't yet friends (shown by username/display name). Users can block anyone; a blocked user's content disappears for the blocker and they can't friend them. Friends leaderboard shows only accepted friends' global score and W-L. [DECIDE: confirm this approach.]
+Username search → request → accept. Suggestions: people who share a group with you and aren't yet friends (shown by username/display name). Users can block anyone; a blocked user's content disappears for the blocker and they can't friend them. Friends leaderboard shows only accepted friends' global score and W-L. **Decided: yes.**
 
 ## 11. Safety, privacy, App Store
 
-- **Moderation**: report on any comment/user; block and mute; server-side word filter on `comments.body` (blocked list in a table, rejects on insert); comments from blocked users hidden by RLS. **How you act on reports**: simplest version is a `reports` table you review in the Supabase dashboard, plus a SQL view `open_reports`; you set `hidden = true` on a comment or ban a user (`profiles.banned`). Apple expects action within 24 hours, so I'll add an email alert to you per new report (needs a free email service later; optional in v1). [DECIDE: ok?]
-- **Leaving a group**: allowed only after your open offers are cancelled (automatic) and you have no unsettled bets in that group; your remaining balance is burned (`leave_burn`) and your net profit is added to lifetime totals. [DECIDE: or allow leaving and void your unsettled bets?]
+- **Moderation**: report on any comment/user; block and mute; server-side word filter on `comments.body` (blocked list in a table, rejects on insert); comments from blocked users hidden by RLS. **How you act on reports**: simplest version is a `reports` table you review in the Supabase dashboard, plus a SQL view `open_reports`; you set `hidden = true` on a comment or ban a user (`profiles.banned`). Apple expects action within 24 hours, so I'll add an email alert to you per new report (needs a free email service later; optional in v1). **Decided: yes.**
+- **Leaving a group**: allowed only after your open offers are cancelled (automatic) and you have no unsettled bets in that group; your remaining balance is burned (`leave_burn`) and your net profit is added to lifetime totals. **Decided:** leaving is blocked while you have unsettled bets.
 - **Account deletion** (in app): cancels offers; voids unsettled bets (refunding opponents); burns remaining balances; anonymises: `profiles` row becomes "Deleted user", name/username/tokens/friendships/blocks removed, comments replaced with `[deleted]`; ledger and bets keep an anonymous user id so every group still balances.
 - **In-app legal text**: "Fade coins are free play money with no cash value. They can't be bought, sold, or redeemed." plus a problem-gambling help link (1-800-GAMBLER / ncpgambling.org). Shown at onboarding, in group creation, and in Settings.
 - **Age rating**: expect 17+ (simulated gambling). Privacy policy URL and privacy manifest are needed before TestFlight external testing. Full audit at the end per CLAUDE.md.
@@ -180,14 +180,14 @@ APNs via an Edge Function (token-based `.p8` key — requires the paid Apple Dev
 - Swift unit tests for odds conversion and coin formatting.
 - Settlement tests against saved real JSON (resolved, 50/50, proposed).
 
-## 14. Decisions needed from you (summary)
+## 14. Decisions (answered 2026-10-08)
 
-1. iOS 17 minimum?
-2. Polymarket Terms: you confirm it's OK to read the public API (or we plan another source).
-3. Vote quorum — add a minimum quorum, or strictly majority of voters?
-4. Vote window 24h?
-5. Rejoining a group you left — 0 balance or fresh starting balance?
-6. Leaving a group with unsettled bets — block it (recommended), or void them?
-7. Friends approach (username requests + shared-group suggestions) — confirm.
-8. Moderation workflow via Supabase dashboard + email alert — confirm.
-9. App name/bundle ID (e.g. `com.<yourname>.fade`) and a domain for universal links + privacy policy. A domain costs ~$12/yr; GitHub Pages can host the privacy policy for free but universal links need a domain you control — can defer the domain until M10.
+1. iOS 17 minimum — **yes**.
+2. Polymarket Terms OK to read the public API — **yes** (owner confirmed). The ingest stays a swappable module.
+3. Vote quorum — **yes**, formula in §8.
+4. Vote window — **24 hours**.
+5. Rejoining a group — **0 coins**.
+6. Leaving with unsettled bets — **blocked**.
+7. Friends: username requests + shared-group suggestions — **yes**.
+8. Moderation via Supabase dashboard + optional email alert — **yes**.
+9. App name **Fade**. No domain yet. **Bundle ID: `com.dschermer.fade`** (proposed from the GitHub handle; changeable until the first TestFlight upload). Because there's no domain, v1 development uses a **custom URL scheme** `fade://join/CODE` plus manual code entry for invites. Real universal links (`https://…/join/CODE`) need a domain you own and are moved to Milestone 10/12; a free GitHub Pages site can host the privacy policy in the meantime.
