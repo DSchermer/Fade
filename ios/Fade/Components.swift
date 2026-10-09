@@ -176,7 +176,7 @@ struct StatTile: View {
 
 /// Fade's buttons: filled blue (primary), outlined (secondary), grey (quiet), red (destructive).
 struct FadeButtonStyle: ButtonStyle {
-    enum Kind { case primary, secondary, quiet, destructive }
+    enum Kind { case primary, secondary, quiet, destructive, destructiveOutline }
 
     var kind: Kind = .primary
     var height: CGFloat = 48
@@ -199,6 +199,7 @@ private struct FadeButtonBody: View {
         switch kind {
         case .primary, .destructive: return Theme.onAccent
         case .secondary, .quiet: return Theme.text
+        case .destructiveOutline: return Theme.loss
         }
     }
 
@@ -208,7 +209,16 @@ private struct FadeButtonBody: View {
         case .primary: return Theme.accent
         case .destructive: return Theme.loss
         case .quiet: return Theme.raised
-        case .secondary: return Color.clear
+        case .secondary, .destructiveOutline: return Color.clear
+        }
+    }
+
+    private var borderColor: Color {
+        guard isEnabled else { return Color.clear }
+        switch kind {
+        case .secondary: return Theme.line
+        case .destructiveOutline: return Theme.loss.opacity(0.5)
+        default: return Color.clear
         }
     }
 
@@ -220,7 +230,7 @@ private struct FadeButtonBody: View {
             .padding(.horizontal, fullWidth ? 8 : 20)
             .frame(maxWidth: fullWidth ? .infinity : nil, minHeight: height)
             .background(fill, in: shape)
-            .overlay(shape.strokeBorder(kind == .secondary && isEnabled ? Theme.line : Color.clear, lineWidth: 1))
+            .overlay(shape.strokeBorder(borderColor, lineWidth: 1))
             .opacity(configuration.isPressed ? 0.8 : 1)
             .contentShape(shape)
     }
@@ -230,6 +240,7 @@ extension ButtonStyle where Self == FadeButtonStyle {
     static var fadePrimary: FadeButtonStyle { FadeButtonStyle(kind: .primary) }
     static var fadeSecondary: FadeButtonStyle { FadeButtonStyle(kind: .secondary) }
     static var fadeQuiet: FadeButtonStyle { FadeButtonStyle(kind: .quiet) }
+    static var fadeDestructiveOutline: FadeButtonStyle { FadeButtonStyle(kind: .destructiveOutline) }
     static var fadeDestructive: FadeButtonStyle { FadeButtonStyle(kind: .destructive) }
     static var fadePrimaryLarge: FadeButtonStyle { FadeButtonStyle(kind: .primary, height: 56) }
     static var fadeSecondaryLarge: FadeButtonStyle { FadeButtonStyle(kind: .secondary, height: 56) }
@@ -318,6 +329,8 @@ struct QuantityStepper: View {
     @Binding var text: String
     var minimum = 1
     var maximum: Int?
+    var step = 1
+    var showsCoin = false
     var lessLabel = "Fewer"
     var moreLabel = "More"
 
@@ -325,16 +338,20 @@ struct QuantityStepper: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            stepButton("minus", label: lessLabel) { text = String(max(minimum, current - 1)) }
-            TextField("0", text: $text)
-                .keyboardType(.numberPad)
-                .multilineTextAlignment(.center)
-                .font(.title2.weight(.heavy))
-                .monospacedDigit()
-                .foregroundStyle(Theme.text)
-                .frame(maxWidth: .infinity)
+            stepButton("minus", label: lessLabel) { text = String(max(minimum, current - step)) }
+            HStack(spacing: 6) {
+                if showsCoin { CoinIcon(size: 22) }
+                TextField("0", text: $text)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.center)
+                    .font(.title2.weight(.heavy))
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.text)
+                    .frame(maxWidth: showsCoin ? 96 : .infinity)
+            }
+            .frame(maxWidth: .infinity)
             stepButton("plus", label: moreLabel) {
-                let next = current + 1
+                let next = current + step
                 text = String(maximum.map { min($0, next) } ?? next)
             }
         }
@@ -352,6 +369,51 @@ struct QuantityStepper: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+/// Text tabs with a blue underline under the chosen one ("All  NHL  NBA", or "Pending 2  Open offers 1  Settled").
+struct UnderlineTabs<Value: Hashable>: View {
+    struct Item: Identifiable {
+        let value: Value
+        let title: String
+        var count: Int?
+        var id: String { title }
+    }
+
+    let items: [Item]
+    @Binding var selection: Value
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(items) { item in
+                let selected = item.value == selection
+                Button {
+                    selection = item.value
+                } label: {
+                    HStack(spacing: 5) {
+                        Text(item.title)
+                            .font(.fadeBody.weight(selected ? .bold : .semibold))
+                            .foregroundStyle(selected ? Theme.text : Theme.text2)
+                        if let count = item.count, count > 0 {
+                            Text("\(count)")
+                                .font(.fadeBody.weight(.semibold))
+                                .monospacedDigit()
+                                .foregroundStyle(Theme.text2)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 44)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(selected ? Theme.accent : Color.clear).frame(height: 2.5)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+            Spacer(minLength: 0)
+        }
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
     }
 }
 

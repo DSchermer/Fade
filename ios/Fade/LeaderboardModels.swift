@@ -86,3 +86,26 @@ extension Int64 {
         self > 0 ? "+" + Coins.format(self) : Coins.format(self)
     }
 }
+
+/// What a group's card on the Groups tab shows: how many members, and where I stand.
+struct GroupSummary: Equatable {
+    var memberCount: Int
+    var myRank: Int?
+    var myNet: Int64
+
+    /// One summary per group, from the leaderboard rows of all my groups. Rank = net profit, ties broken by balance
+    /// (the same order the leaderboard uses).
+    static func build(from rows: [LeaderboardRow], me: UUID) -> [UUID: GroupSummary] {
+        var result: [UUID: GroupSummary] = [:]
+        for (groupID, members) in Dictionary(grouping: rows, by: { $0.groupId }) {
+            let ranked = members.sorted { ($0.netProfit, $0.balance) > ($1.netProfit, $1.balance) }
+            let index = ranked.firstIndex { $0.userId == me }
+            result[groupID] = GroupSummary(
+                memberCount: members.count,
+                myRank: index.map { $0 + 1 },
+                myNet: index.map { ranked[$0].netProfit } ?? 0
+            )
+        }
+        return result
+    }
+}

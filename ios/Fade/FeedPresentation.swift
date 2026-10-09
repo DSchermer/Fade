@@ -85,9 +85,9 @@ extension FeedItem {
             default: return ("Pending", .pending)
             }
         case "bet_settled":
-            return payload.result == "void" ? ("Void", .neutral) : ("Won", .win)
+            return payload.result == "void" ? ("Void", FeedTone.neutral) : ("Won", FeedTone.win)
         case "vote_called": return ("Vote", .pending)
-        case "vote_result": return payload.status == "passed" ? ("Passed", .win) : ("Failed", .loss)
+        case "vote_result": return payload.status == "passed" ? ("Passed", FeedTone.win) : ("Failed", FeedTone.loss)
         default: return nil
         }
     }

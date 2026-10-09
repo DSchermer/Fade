@@ -45,14 +45,6 @@ struct MarketRow: Decodable, Identifiable {
     }
 }
 
-/// One game (a Polymarket "event"), listed from its moneyline market.
-struct Game: Identifiable {
-    let id: String          // event id
-    let title: String
-    let league: String
-    let start: Date
-}
-
 /// The markets of one game, organised for display.
 struct GameMarkets {
     let moneylines: [MarketRow]

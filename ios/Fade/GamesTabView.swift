@@ -131,28 +131,10 @@ struct GamesTabView: View {
     }
 
     private var leagueBar: some View {
-        HStack(spacing: 0) {
-            ForEach(Self.leagueTabs) { tab in
-                let selected = league == tab.code
-                Button {
-                    league = tab.code
-                } label: {
-                    Text(tab.title)
-                        .font(.fadeBody.weight(selected ? .bold : .semibold))
-                        .foregroundStyle(selected ? Theme.text : Theme.text2)
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: 44)
-                        .overlay(alignment: .bottom) {
-                            Rectangle().fill(selected ? Theme.accent : Color.clear).frame(height: 2.5)
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? .isSelected : [])
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 2)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
+        UnderlineTabs(
+            items: Self.leagueTabs.map { UnderlineTabs<String?>.Item(value: $0.code, title: $0.title) },
+            selection: $league
+        )
         .padding(.horizontal, 2)
     }
 

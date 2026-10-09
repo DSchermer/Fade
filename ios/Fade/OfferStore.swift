@@ -11,11 +11,11 @@ final class OfferStore {
     // MARK: Reading
 
     /// Open offers in a group, optionally for one market. Hides offers whose game has already started.
-    func openOffers(groupID: UUID, marketID: String? = nil) async -> [OfferRow] {
+    func openOffers(groupID: UUID? = nil, marketID: String? = nil) async -> [OfferRow] {
         do {
             var query = supabase.from("offer_listing").select()
-                .eq("group_id", value: groupID)
                 .eq("status", value: "open")
+            if let groupID { query = query.eq("group_id", value: groupID) }
             if let marketID { query = query.eq("market_id", value: marketID) }
             let rows: [OfferRow] = try await query
                 .order("created_at", ascending: false)
@@ -40,12 +40,13 @@ final class OfferStore {
         return rows?.first
     }
 
-    /// The signed-in user's own offers in a group (newest first).
-    func myOffers(groupID: UUID, userID: UUID) async -> [OfferRow] {
+    /// The signed-in user's own offers in one group, or in every group (newest first).
+    func myOffers(groupID: UUID? = nil, userID: UUID) async -> [OfferRow] {
         do {
-            let rows: [OfferRow] = try await supabase.from("offer_listing").select()
-                .eq("group_id", value: groupID)
+            var query = supabase.from("offer_listing").select()
                 .eq("maker_id", value: userID)
+            if let groupID { query = query.eq("group_id", value: groupID) }
+            let rows: [OfferRow] = try await query
                 .order("created_at", ascending: false)
                 .limit(100)
                 .execute()
@@ -58,12 +59,13 @@ final class OfferStore {
         }
     }
 
-    /// Bets in a group where the user is the maker or the taker (newest first).
-    func myBets(groupID: UUID, userID: UUID) async -> [BetRow] {
+    /// Bets where the user is the maker or the taker, in one group or in every group (newest first).
+    func myBets(groupID: UUID? = nil, userID: UUID) async -> [BetRow] {
         do {
-            let rows: [BetRow] = try await supabase.from("bet_listing").select()
-                .eq("group_id", value: groupID)
+            var query = supabase.from("bet_listing").select()
                 .or("maker_id.eq.\(userID.uuidString),taker_id.eq.\(userID.uuidString)")
+            if let groupID { query = query.eq("group_id", value: groupID) }
+            let rows: [BetRow] = try await query
                 .order("created_at", ascending: false)
                 .limit(200)
                 .execute()

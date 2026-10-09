@@ -60,3 +60,35 @@ Supabase → SQL Editor → New query → paste the whole file `supabase/migrati
 
 ### D. What to send me
 Screenshots of: the Games tab, an order book, the Make-an-offer sheet with numbers filled in, the game page, and anything that looks off or any Xcode error.
+
+
+---
+
+## Step R3 — Bets tab, Groups tab, the group page, votes, buybacks, leaving
+
+No new database step. `git pull`, `cd ios && xcodegen`, Run.
+
+### Things to tap
+1. **Bets tab.** Title "Bets", **In play** (coins tied up) at the top right, tabs **Pending / Open offers / Settled** with counts, and group chips if you're in more than one group.
+   - **Pending**: a card for each bet that isn't settled. Before the game: your side and price, "You vs <name> · <group> · 25 shares", **You put up / To win**, "Starts in 2h 14m" and a **Share** button. After the game starts: an amber box "Game started — awaiting official result…".
+   - **Open offers**: your unfilled offers, with **Cancel N unfilled shares** (asks you to confirm and returns the coins).
+   - **Settled**: Won / Lost / Void cards with the big +/− amount; cancelled offers also show here.
+2. **Groups tab.** Create group / Join with a code buttons, then a card per group: badge, name, "6 members · Unlimited buybacks", **Balance / Net / Rank** boxes, a yellow "Reset vote open" tag when one is running, a blue "n open offers" tag, and (if you have 0 coins) a yellow "You're out of coins" strip with a button.
+3. **Open a group** (tap its card). Top: **Balance / Net / In play**, the group's rules line, an **Invite** button in the top bar.
+   - **Leaderboard**: switch **Net profit | Raw balance**; rank numbers, "n buybacks" under a name, your row is tinted.
+   - **Feed**: that group's activity (same cards as the main Feed).
+   - **Votes**: open votes with a green/red progress bar, **Yes / No**, "Call a vote to reset the group", recent results, past seasons.
+   - **Members**: everyone with balances; a **⋯** menu on other people (Report / Mute / Block); if you own the group, a **Make owner** button on each other member; group rules; **Invite friends**; **Leave group**.
+4. **Invite**: tap Invite — big code, **Copy code**, **Share invite**.
+5. **Create a group** (Groups tab → Create group): name with a counter, starting balance with − / + (type a number too), the **Unlimited | Per week | By vote** switch, "Same buyback as starting balance" switch. Press **Create group**.
+6. **Join with a code**: eight boxes fill as you type (or **Paste from clipboard**). **Join group** turns on at 8 characters.
+7. **Vote** (needs 2+ people): Members/Votes → **Call a vote to reset the group** → confirm. The yellow banner appears at the top of the group page and in the Feed. As another account, tap **Yes** — the bar and counts move.
+8. **Buyback** (use a debug account with 0 coins, e.g. after losing everything): the group page shows the **"You're out of coins"** card. If buybacks are allowed you get **Buy back in for N coins** → a sheet with what you receive, that net profit stays the same, and that the group sees it → confirm. If the weekly limit is used you see when the next one opens. In a "By vote" group you get **Ask the group for a buyback**.
+9. **Leave a group**: Members → **Leave group**.
+   - With a bet that isn't settled: a sheet **"You can't leave yet"** lists those bets (no error afterwards).
+   - Otherwise: **"Leave <group>?"** shows open offers cancelled / coins gone / net profit kept, with **Leave group** and **Stay**.
+   - As the owner with other members: the button is greyed and a yellow note says to hand over first. Tap **Make owner** on someone → confirm sheet → done, then you can leave.
+10. Report/mute/block from the ⋯ menu still work; the report sheet is the new one.
+
+### What to send me
+Screenshots of the Bets tab (each of the three parts if you can), the Groups tab, a group page (Leaderboard and Members), the Votes part with an open vote, and anything that looks off or any Xcode error.

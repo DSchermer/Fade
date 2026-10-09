@@ -7,11 +7,17 @@ import Supabase
 @Observable
 final class GroupStore {
     var memberships: [GroupMembership] = []
+    /// Member counts and my standing per group, for the Groups tab.
+    var summaries: [UUID: GroupSummary] = [:]
     var isLoading = false
+    /// true once the list of groups has loaded successfully at least once (so an empty list really means "no groups").
+    var hasLoaded = false
     var errorMessage: String?
 
     func clear() {
         memberships = []
+        summaries = [:]
+        hasLoaded = false
         errorMessage = nil
     }
 
@@ -27,10 +33,16 @@ final class GroupStore {
                 .execute()
                 .value
             memberships = rows
+            hasLoaded = true
             errorMessage = nil
         } catch {
             errorMessage = "Couldn't load your groups: \(Session.describe(error))"
         }
+    }
+
+    func loadSummaries(userID: UUID) async {
+        let rows: [LeaderboardRow]? = try? await supabase.from("group_leaderboard").select().execute().value
+        if let rows { summaries = GroupSummary.build(from: rows, me: userID) }
     }
 
     func members(of groupID: UUID) async -> [LeaderboardRow] {

@@ -113,9 +113,11 @@ struct BetRow: Decodable, Identifiable, MarketDescribing {
     let eventTitle: String
     let league: String
     let phase: String?
+    let settledAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id, status, question, outcomes, line, shares, league, phase
+        case settledAt = "settled_at"
         case offerId = "offer_id"
         case groupId = "group_id"
         case marketId = "market_id"
@@ -169,5 +171,34 @@ struct BetRow: Decodable, Identifiable, MarketDescribing {
             default: return "Pending"
             }
         }
+    }
+}
+
+// MARK: - How a bet reads on its card
+
+extension BetRow {
+    /// What I pay per share, in cents (the maker pays the price, the taker pays the rest of the dollar).
+    func myPriceCents(_ me: UUID) -> Int { iAmMaker(me) ? priceCents : 100 - priceCents }
+
+    /// "Moneyline · NHL · Tonight 7:00 PM"
+    func contextLine(now: Date = Date(), calendar: Calendar = .current) -> String {
+        let kind: String
+        switch marketType {
+        case "spreads": kind = "Spread"
+        case "totals": kind = "Over/Under"
+        default: kind = "Moneyline"
+        }
+        return [kind, league.uppercased(), GameTime.label(gameStart, now: now, calendar: calendar)].joined(separator: " · ")
+    }
+
+    /// "Starts in 2h 14m" while the game hasn't started; nil afterwards.
+    func startsInText(now: Date = Date()) -> String? {
+        guard status == "pending", gameStart > now else { return nil }
+        return "Starts in " + RelativeTime.countdown(until: gameStart, from: now)
+    }
+
+    /// True once the game has begun but the bet isn't settled yet.
+    func isAwaitingResult(now: Date = Date()) -> Bool {
+        status == "pending" && gameStart <= now
     }
 }

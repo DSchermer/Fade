@@ -21,6 +21,7 @@ final class FeedStore {
             errorMessage = nil
             return rows
         } catch {
+            if Task.isCancelled || (error as? URLError)?.code == .cancelled { return [] }
             errorMessage = "Couldn't load the feed: \(Session.describe(error))"
             return []
         }

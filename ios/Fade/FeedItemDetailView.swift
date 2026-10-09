@@ -20,6 +20,7 @@ struct FeedItemDetailView: View {
     @State private var confirmBlock: CommentRow?
     @State private var offerToTake: OfferRow?
     @State private var isSending = false
+    @State private var seeded = false
 
     private var format: PriceFormat { session.profile?.priceFormat ?? .cents }
     private var me: UUID? { session.profile?.id }
@@ -72,8 +73,11 @@ struct FeedItemDetailView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) { composer }
         .task {
-            reactions = item.reactions
-            myReactions = Set(item.myReactions)
+            if !seeded {
+                seeded = true
+                reactions = item.reactions
+                myReactions = Set(item.myReactions)
+            }
             await reload()
         }
         .sheet(item: $reportTarget) { target in ReportView(target: target) }
@@ -257,8 +261,9 @@ struct FeedItemDetailView: View {
 
     private func fade() async {
         guard let offerID = item.refId else { return }
-        guard let offer = await offerStore.offer(id: offerID) else {
+        guard let offer = await offerStore.offer(id: offerID), offer.status == "open", offer.sharesOpen > 0, offer.gameStart > Date() else {
             errorMessage = "That offer isn't available any more."
+            await onChange()
             return
         }
         errorMessage = nil

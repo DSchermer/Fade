@@ -34,6 +34,17 @@ struct GroupInfo: Decodable, Identifiable {
         case buybackAmount = "buyback_amount"
     }
 
+    /// One short phrase for lists: "Unlimited buybacks", "2 buybacks a week", "Buyback by vote".
+    var buybackShort: String {
+        switch buybackPolicy {
+        case .unlimited: return "Unlimited buybacks"
+        case .weekly:
+            let n = buybacksPerWeek ?? 1
+            return "\(n) buyback\(n == 1 ? "" : "s") a week"
+        case .vote: return "Buyback by vote"
+        }
+    }
+
     var buybackSummary: String {
         let amount = Coins.format(buybackAmount)
         switch buybackPolicy {
@@ -58,4 +69,9 @@ struct GroupMembership: Decodable, Identifiable {
 
     var id: UUID { group.id }
     var balance: Int64 { available + escrow }
+}
+
+extension GroupMembership: Hashable {
+    static func == (a: GroupMembership, b: GroupMembership) -> Bool { a.id == b.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

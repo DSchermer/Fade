@@ -12,6 +12,7 @@ enum RelativeTime {
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.timeZone = calendar.timeZone
+        formatter.locale = calendar.locale ?? Locale.current
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
     }
@@ -26,12 +27,27 @@ enum RelativeTime {
     }
 }
 
+extension RelativeTime {
+    /// "2h 14m", "35m", "1d 3h", or "under a minute". For "Starts in …".
+    static func countdown(until date: Date, from now: Date = Date()) -> String {
+        let seconds = Int(date.timeIntervalSince(now))
+        if seconds < 60 { return "under a minute" }
+        let minutes = seconds / 60
+        if minutes < 60 { return "\(minutes)m" }
+        let hours = minutes / 60
+        if hours < 24 { return minutes % 60 == 0 ? "\(hours)h" : "\(hours)h \(minutes % 60)m" }
+        let days = hours / 24
+        return hours % 24 == 0 ? "\(days)d" : "\(days)d \(hours % 24)h"
+    }
+}
+
 enum GameTime {
     /// "Tonight 7:00 PM", "Today 1:05 PM", "Tomorrow 3:00 PM", "Sat 7:30 PM", "Oct 14, 7:00 PM"
     static func label(_ date: Date, now: Date = Date(), calendar: Calendar = .current) -> String {
         let time = DateFormatter()
         time.calendar = calendar
         time.timeZone = calendar.timeZone
+        time.locale = calendar.locale ?? Locale.current
         time.dateFormat = "h:mm a"
         let clock = time.string(from: date)
 
@@ -47,6 +63,7 @@ enum GameTime {
         let day = DateFormatter()
         day.calendar = calendar
         day.timeZone = calendar.timeZone
+        day.locale = calendar.locale ?? Locale.current
         if days > 1 && days < 7 {
             day.dateFormat = "EEE"
             return day.string(from: date) + " " + clock
@@ -64,6 +81,7 @@ enum GameTime {
         let format = DateFormatter()
         format.calendar = calendar
         format.timeZone = calendar.timeZone
+        format.locale = calendar.locale ?? Locale.current
         format.dateFormat = "EEEE, MMM d"
         return format.string(from: date)
     }

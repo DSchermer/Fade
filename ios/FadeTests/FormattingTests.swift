@@ -67,3 +67,15 @@ final class AvatarTests: XCTestCase {
         XCTAssertEqual(AvatarPalette.groupInitials("Work Pool League"), "WP")
     }
 }
+
+final class CountdownTests: XCTestCase {
+    func testCountdown() {
+        let now = ISO8601DateFormatter().date(from: "2026-10-09T12:00:00Z")!
+        func at(_ s: String) -> Date { ISO8601DateFormatter().date(from: s)! }
+        XCTAssertEqual(RelativeTime.countdown(until: at("2026-10-09T12:00:30Z"), from: now), "under a minute")
+        XCTAssertEqual(RelativeTime.countdown(until: at("2026-10-09T12:35:00Z"), from: now), "35m")
+        XCTAssertEqual(RelativeTime.countdown(until: at("2026-10-09T14:14:00Z"), from: now), "2h 14m")
+        XCTAssertEqual(RelativeTime.countdown(until: at("2026-10-09T15:00:00Z"), from: now), "3h")
+        XCTAssertEqual(RelativeTime.countdown(until: at("2026-10-11T15:00:00Z"), from: now), "2d 3h")
+    }
+}

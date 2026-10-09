@@ -89,3 +89,24 @@ extension View {
             )
     }
 }
+
+extension View {
+    /// Card colour and hairline border without any padding (for lists whose rows bring their own).
+    func fadeCardBackground() -> some View {
+        self
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                    .strokeBorder(Theme.line, lineWidth: 1)
+            )
+    }
+
+    /// The look of every bottom sheet: card-coloured, rounded top, drag handle.
+    func fadeSheet() -> some View {
+        self
+            .background(Theme.card)
+            .presentationDragIndicator(.visible)
+            .presentationBackground(Theme.card)
+            .presentationCornerRadius(Theme.Radius.sheet)
+    }
+}

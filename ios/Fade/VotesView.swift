@@ -1,11 +1,30 @@
 import SwiftUI
 
-/// Votes in a group: open ones to vote on, calling a reset vote, recent results, and past seasons.
+/// Votes in a group as a screen of its own.
 struct VotesView: View {
+    let group: GroupInfo
+
+    var body: some View {
+        ScrollView {
+            VotesContent(group: group)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+        }
+        .fadeScreen()
+        .navigationTitle("Votes and seasons")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// Open votes to vote on, calling a reset vote, recent results, and past seasons. Used on a group's page and on its own screen.
+struct VotesContent: View {
     @Environment(Session.self) private var session
     @Environment(GroupStore.self) private var groups
 
     let group: GroupInfo
+    var refreshTick = 0
+    var onChange: () -> Void = {}
 
     @State private var votes: [VoteRow] = []
     @State private var standings: [SeasonStandingRow] = []
@@ -14,76 +33,134 @@ struct VotesView: View {
     @State private var showCallReset = false
     @State private var isWorking = false
 
+    private struct LoadKey: Equatable {
+        let tick: Int
+    }
+
     private var openVotes: [VoteRow] { votes.filter(\.isOpen) }
-    private var finished: [VoteRow] { votes.filter { !$0.isOpen }.prefix(10).map { $0 } }
+    private var finished: [VoteRow] { Array(votes.filter { !$0.isOpen }.prefix(10)) }
     private var hasOpenReset: Bool { openVotes.contains { $0.kind == "reset" } }
     private var seasonNumbers: [Int] { Array(Set(standings.map(\.number))).sorted(by: >) }
 
     var body: some View {
-        List {
-            if let errorMessage {
-                Section { Text(errorMessage).foregroundStyle(.red) }
-            }
+        VStack(alignment: .leading, spacing: 14) {
+            if let errorMessage { ErrorLine(errorMessage) }
 
-            if !openVotes.isEmpty {
-                Section("Open votes") {
-                    ForEach(openVotes) { vote in
-                        VoteCard(vote: vote, startingBalance: group.startingBalance,
-                                 isWorking: isWorking) { yes in Task { await cast(vote, yes: yes) } }
-                    }
+            ForEach(openVotes) { vote in
+                VoteCard(vote: vote, startingBalance: group.startingBalance, isWorking: isWorking) { yes in
+                    Task { await cast(vote, yes: yes) }
                 }
             }
 
-            Section {
-                Button("Call a vote to reset the group") { showCallReset = true }
-                    .disabled(hasOpenReset || isWorking)
-            } footer: {
-                Text("Any member can call a reset vote. It runs for 24 hours and passes when more than half of all members vote yes — or, when time runs out, when yes beats no with at least a few members voting.")
-            }
+            Button("Call a vote to reset the group") { showCallReset = true }
+                .buttonStyle(.fadeQuiet)
+                .disabled(hasOpenReset || isWorking)
+            Text("Any member can call a reset vote. It runs for 24 hours and passes when more than half of all members vote yes, or when time runs out and yes beats no with a few members voting.")
+                .font(.caption)
+                .foregroundStyle(Theme.text3)
+                .fixedSize(horizontal: false, vertical: true)
 
             if !finished.isEmpty {
-                Section("Recent results") {
-                    ForEach(finished) { vote in
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(vote.title).font(.subheadline)
-                            Text("\(vote.resultText) · yes \(vote.yesCount) / no \(vote.noCount)")
-                                .font(.footnote).foregroundStyle(.secondary)
-                            if let decided = vote.decidedAt {
-                                Text(decided.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel("Recent results")
+                    VStack(spacing: 0) {
+                        ForEach(Array(finished.enumerated()), id: \.element.id) { index, vote in
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(vote.title).font(.fadeBody.weight(.semibold)).foregroundStyle(Theme.text)
+                                    Text(resultDetail(vote)).font(.caption).foregroundStyle(Theme.text2)
+                                }
+                                Spacer(minLength: 8)
+                                StatusPill(text: pillText(vote), tone: pillTone(vote))
+                            }
+                            .frame(minHeight: 60)
+                            .overlay(alignment: .bottom) {
+                                if index < finished.count - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
                             }
                         }
                     }
+                    .padding(.horizontal, 14)
+                    .fadeCardBackground()
                 }
             }
 
             if !seasonNumbers.isEmpty {
-                Section("Past seasons") {
-                    ForEach(seasonNumbers, id: \.self) { number in
-                        NavigationLink("Season \(number)") {
-                            SeasonDetailView(number: number, rows: standings.filter { $0.number == number })
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel("Past seasons")
+                    VStack(spacing: 0) {
+                        ForEach(seasonNumbers, id: \.self) { number in
+                            NavigationLink {
+                                SeasonDetailView(number: number, rows: standings.filter { $0.number == number })
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("Season \(number)").font(.fadeBody.weight(.semibold)).foregroundStyle(Theme.text)
+                                        Text(seasonDetail(number)).font(.caption).foregroundStyle(Theme.text2)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right").font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.text3)
+                                }
+                                .frame(minHeight: 60)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
+                    .padding(.horizontal, 14)
+                    .fadeCardBackground()
                 }
             }
-        }
-        .overlay {
+
             if loaded && votes.isEmpty && standings.isEmpty {
-                ContentUnavailableView("No votes yet", systemImage: "hand.raised",
-                                       description: Text("Call a reset vote if the group wants a fresh start."))
+                Text("No votes yet. Call a reset vote if the group wants a fresh start.")
+                    .font(.fadeBody)
+                    .foregroundStyle(Theme.text2)
             }
         }
-        .navigationTitle("Votes & seasons")
-        .navigationBarTitleDisplayMode(.inline)
-        .task { await reload() }
-        .refreshable { await reload() }
+        .task(id: LoadKey(tick: refreshTick)) { await reload() }
         .confirmationDialog("Call a reset vote?", isPresented: $showCallReset, titleVisibility: .visible) {
             Button("Call the vote") { Task { await callReset() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("If it passes, all unsettled bets are voided and refunded, open offers are cancelled, and everyone goes back to \(Coins.format(group.startingBalance)) coins.")
+            Text("If it passes, all unsettled bets are voided and refunded, open offers are cancelled, and everyone goes back to \(Coins.formatFixed(group.startingBalance)) coins.")
         }
     }
+
+    // MARK: Text
+
+    private func resultDetail(_ vote: VoteRow) -> String {
+        var text = "yes \(vote.yesCount) · no \(vote.noCount)"
+        if let decided = vote.decidedAt { text += " · " + decided.formatted(.dateTime.month(.abbreviated).day()) }
+        return text
+    }
+
+    private func pillText(_ vote: VoteRow) -> String {
+        switch vote.status {
+        case "passed": return "Passed"
+        case "failed": return "Failed"
+        default: return "Cancelled"
+        }
+    }
+
+    private func pillTone(_ vote: VoteRow) -> FeedTone {
+        switch vote.status {
+        case "passed": return .win
+        case "failed": return .loss
+        default: return .neutral
+        }
+    }
+
+    private func seasonDetail(_ number: Int) -> String {
+        let rows = standings.filter { $0.number == number }
+        var parts: [String] = []
+        if let ended = rows.first?.endedAt { parts.append("Ended " + ended.formatted(.dateTime.month(.abbreviated).day())) }
+        if let winner = rows.max(by: { $0.netProfit < $1.netProfit }) {
+            parts.append("winner \(winner.username ?? "deleted user") \(Coins.formatSigned(winner.netProfit))")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    // MARK: Actions
 
     private func reload() async {
         votes = await groups.votes(groupID: group.id)
@@ -97,6 +174,7 @@ struct VotesView: View {
         defer { isWorking = false }
         errorMessage = await groups.callVote(groupID: group.id, kind: "reset", userID: userID)
         await reload()
+        onChange()
     }
 
     private func cast(_ vote: VoteRow, yes: Bool) async {
@@ -105,64 +183,127 @@ struct VotesView: View {
         defer { isWorking = false }
         errorMessage = await groups.castVote(voteID: vote.id, yes: yes, userID: userID)
         await reload()
+        onChange()
     }
 }
 
-private struct VoteCard: View {
+/// The yes / no / not-yet-voted bar.
+struct VoteProgressBar: View {
+    let yes: Int
+    let no: Int
+    let total: Int
+
+    var body: some View {
+        GeometryReader { proxy in
+            let count = CGFloat(max(total, 1))
+            let width = proxy.size.width
+            HStack(spacing: 2) {
+                Rectangle().fill(Theme.win).frame(width: max(0, width * CGFloat(yes) / count))
+                Rectangle().fill(Theme.loss).frame(width: max(0, width * CGFloat(no) / count))
+                Spacer(minLength: 0)
+            }
+            .frame(width: width, height: 10, alignment: .leading)
+            .background(Theme.raised)
+            .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+        }
+        .frame(height: 10)
+        .accessibilityHidden(true)
+    }
+}
+
+/// One open vote: where it stands and the Yes / No buttons.
+struct VoteCard: View {
     let vote: VoteRow
     let startingBalance: Int64
     let isWorking: Bool
     let onVote: (Bool) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(vote.title).font(.headline)
-            Text("Called by @\(vote.calledByUsername ?? "deleted user") · closes \(vote.closesAt.formatted(date: .abbreviated, time: .shortened))")
-                .font(.footnote).foregroundStyle(.secondary)
-
-            if vote.kind == "reset" {
-                Text("If this passes: open offers are cancelled, ALL unsettled bets are voided and refunded, everyone returns to \(Coins.format(startingBalance)) coins, buyback counts clear and a new season starts. Everyone keeps this season's profit or loss in their lifetime score.")
-                    .font(.footnote).foregroundStyle(.orange)
-            } else {
-                Text("If this passes, @\(vote.subjectUsername ?? "deleted user") gets the group's buyback amount.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("\(vote.yesCount) yes", systemImage: "hand.thumbsup")
+                Text("VOTE OPEN")
+                    .font(.fadeLabel)
+                    .tracking(1)
+                    .foregroundStyle(Theme.pending)
                 Spacer()
-                Label("\(vote.noCount) no", systemImage: "hand.thumbsdown")
-                Spacer()
-                Text("\(vote.electorate) members").foregroundStyle(.secondary)
+                Text("Closes in \(RelativeTime.remaining(until: vote.closesAt))")
+                    .font(.caption)
+                    .foregroundStyle(Theme.text2)
             }
-            .font(.subheadline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(vote.title).font(.fadeSectionTitle).foregroundStyle(Theme.text)
+                Text("Called by \(vote.calledByUsername ?? "deleted user")").font(.fadeCaption).foregroundStyle(Theme.text2)
+            }
 
-            ProgressView(value: Double(vote.yesCount), total: Double(max(vote.electorate, 1)))
-
-            Text("Passes at \(vote.electorate / 2 + 1) yes votes, or when time runs out with at least \(vote.quorum) votes and more yes than no.")
-                .font(.caption).foregroundStyle(.secondary)
-
-            HStack(spacing: 12) {
-                Button { onVote(true) } label: {
-                    Label("Yes", systemImage: vote.myVote == true ? "checkmark.circle.fill" : "circle")
-                        .frame(maxWidth: .infinity)
+            VStack(alignment: .leading, spacing: 8) {
+                VoteProgressBar(yes: vote.yesCount, no: vote.noCount, total: vote.electorate)
+                HStack {
+                    Text("\(vote.yesCount) yes").foregroundStyle(Theme.win)
+                    Spacer()
+                    Text("\(vote.noCount) no").foregroundStyle(Theme.loss)
+                    Spacer()
+                    Text("\(max(0, vote.electorate - vote.yesCount - vote.noCount)) haven't voted").foregroundStyle(Theme.text2)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                Button { onVote(false) } label: {
-                    Label("No", systemImage: vote.myVote == false ? "checkmark.circle.fill" : "circle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.red)
+                .font(.fadeCaption.weight(.bold))
+                .monospacedDigit()
+                Text("Passes at \(vote.electorate / 2 + 1) yes votes, or when time runs out with at least \(vote.quorum) votes and more yes than no.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.text2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            consequence
+
+            HStack(spacing: 10) {
+                voteButton(yes: true)
+                voteButton(yes: false)
             }
             .disabled(isWorking)
+
             if let mine = vote.myVote {
                 Text("You voted \(mine ? "yes" : "no"). You can change it until the vote closes.")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption)
+                    .foregroundStyle(Theme.text2)
+                    .frame(maxWidth: .infinity)
             }
         }
-        .padding(.vertical, 4)
+        .fadeCard(padding: 18, fill: Theme.pending.opacity(0.09), stroke: Theme.pending.opacity(0.32))
+    }
+
+    @ViewBuilder private var consequence: some View {
+        if vote.kind == "reset" {
+            (Text("If it passes: open offers are cancelled, ")
+                + Text("all unsettled bets are voided and refunded").fontWeight(.bold)
+                + Text(", everyone returns to \(Coins.formatFixed(startingBalance)) coins and a new season starts. Everyone keeps this season's profit or loss in their lifetime score."))
+                .font(.fadeBody)
+                .foregroundColor(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            Text("If this passes, \(vote.subjectUsername ?? "deleted user") gets the group's buyback amount.")
+                .font(.fadeBody)
+                .foregroundStyle(Theme.text)
+        }
+    }
+
+    private func voteButton(yes: Bool) -> some View {
+        let selected = vote.myVote == yes
+        let tint = yes ? Theme.win : Theme.loss
+        return Button {
+            onVote(yes)
+        } label: {
+            HStack(spacing: 6) {
+                if selected { Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)) }
+                Text(yes ? "Yes" : "No")
+            }
+            .font(.fadeHeadline.weight(.bold))
+            .foregroundStyle(selected ? tint : Theme.text)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(selected ? tint.opacity(0.14) : Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous).strokeBorder(selected ? tint : Theme.line, lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(yes ? "Vote yes" : "Vote no")
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 
@@ -174,29 +315,44 @@ struct SeasonDetailView: View {
     private var sorted: [SeasonStandingRow] { rows.sorted { $0.netProfit > $1.netProfit } }
 
     var body: some View {
-        List {
-            Section {
-                ForEach(Array(sorted.enumerated()), id: \.element.id) { index, row in
-                    HStack {
-                        Text("\(index + 1)").font(.headline).monospacedDigit().frame(width: 28)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(row.displayName).font(.headline)
-                            Text("Finished with \(Coins.format(row.finalBalance))"
-                                 + (row.buybackCount > 0 ? " · \(row.buybackCount) buyback\(row.buybackCount == 1 ? "" : "s")" : ""))
-                                .font(.footnote).foregroundStyle(.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(spacing: 0) {
+                    ForEach(Array(sorted.enumerated()), id: \.element.id) { index, row in
+                        HStack(spacing: 12) {
+                            Text("\(index + 1)")
+                                .font(.fadeBody.weight(.heavy))
+                                .monospacedDigit()
+                                .foregroundStyle(index == 0 ? Theme.pending : Theme.text2)
+                                .frame(width: 22)
+                            Avatar(name: row.username ?? "?", size: 36)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(row.username ?? "deleted user").font(.fadeHeadline.weight(.semibold)).foregroundStyle(Theme.text)
+                                Text("Finished with \(Coins.formatFixed(row.finalBalance))" + (row.buybackCount > 0 ? " · \(row.buybackCount) buyback\(row.buybackCount == 1 ? "" : "s")" : ""))
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.text2)
+                            }
+                            Spacer(minLength: 4)
+                            CoinAmount(centicoins: row.netProfit, signed: true, font: .fadeHeadline.weight(.heavy), iconSize: 14)
                         }
-                        Spacer()
-                        Text(row.netProfit.signedCoins)
-                            .font(.headline).monospacedDigit()
-                            .foregroundStyle(row.netProfit > 0 ? Color.green : (row.netProfit < 0 ? Color.red : Color.primary))
+                        .frame(minHeight: 60)
+                        .overlay(alignment: .bottom) {
+                            if index < sorted.count - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
+                        }
                     }
                 }
-            } footer: {
+                .padding(.horizontal, 14)
+                .fadeCardBackground()
                 if let ended = rows.first?.endedAt {
                     Text("Season \(number) ended \(ended.formatted(date: .abbreviated, time: .omitted)). Net profit = balance − starting balance − buyback coins.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.text3)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
         }
+        .fadeScreen()
         .navigationTitle("Season \(number)")
         .navigationBarTitleDisplayMode(.inline)
     }

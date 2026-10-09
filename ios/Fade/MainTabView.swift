@@ -10,21 +10,20 @@ struct MainTabView: View {
         @Bindable var router = router
         TabView(selection: $router.tab) {
             FeedHomeView()
+                .toolbar(.hidden, for: .tabBar)
                 .tag(AppTab.feed)
-                .toolbar(.hidden, for: .tabBar)
             GamesTabView()
+                .toolbar(.hidden, for: .tabBar)
                 .tag(AppTab.games)
+            BetsTabView()
                 .toolbar(.hidden, for: .tabBar)
-            LegacyTabView(tab: .bets)
                 .tag(AppTab.bets)
+            GroupsTabView()
                 .toolbar(.hidden, for: .tabBar)
-            HomeView()
                 .tag(AppTab.groups)
+            SettingsView(asTab: true)
                 .toolbar(.hidden, for: .tabBar)
-            SettingsView()
-                .fadeTabBar()
                 .tag(AppTab.me)
-                .toolbar(.hidden, for: .tabBar)
         }
         .tint(Theme.accent)
         .sheet(item: $router.sheet, onDismiss: { session.pendingJoinCode = nil }) { sheet in
@@ -32,6 +31,11 @@ struct MainTabView: View {
             case .createGroup: CreateGroupView()
             case .joinGroup: JoinGroupView(prefill: session.pendingJoinCode)
             }
+        }
+        .onDisappear {                      // signed out: the next sign-in starts fresh on the Feed tab
+            router.tab = .feed
+            router.sheet = nil
+            router.gamesGroupID = nil
         }
         .onChange(of: session.pendingJoinCode) { _, code in
             if code != nil { router.sheet = .joinGroup }
@@ -87,6 +91,7 @@ extension View {
             FadeTabBar()
                 .padding(.horizontal, 16)
                 .padding(.bottom, 4)
+                .ignoresSafeArea(.keyboard, edges: .bottom)
         }
     }
 }

@@ -63,8 +63,9 @@ end $$;
 -- ═════════ 3. Latest comment preview ═════════
 call pg_temp.as_user('b');
 select add_comment((select id from feed_listing where kind = 'offer_posted' and group_id = pg_temp.gid('Alpha')), 'first one');
-select pg_sleep(0.01);
 select add_comment((select id from feed_listing where kind = 'offer_posted' and group_id = pg_temp.gid('Alpha')), 'second one');
+-- (inside one test transaction both comments get the same clock time, so make the first one older, as it would be in real life)
+update comments set created_at = created_at - interval '1 minute' where body = 'first one';
 call pg_temp.as_user('a');
 do $$ declare f feed_listing; begin
   select * into f from feed_listing where kind = 'offer_posted' and group_id = pg_temp.gid('Alpha');

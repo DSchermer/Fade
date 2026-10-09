@@ -1,6 +1,9 @@
 import SwiftUI
 
 struct SettingsView: View {
+    /// true when shown as the Me tab (no Done button; floating tab bar), false as a sheet.
+    var asTab = false
+
     @Environment(Session.self) private var session
     @Environment(GroupStore.self) private var groups
     @Environment(\.dismiss) private var dismiss
@@ -67,7 +70,12 @@ struct SettingsView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                if !asTab {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if asTab { FadeTabBar().padding(.horizontal, 16).padding(.bottom, 4) }
             }
             .sheet(isPresented: $showLegal) { LegalView() }
             .sheet(isPresented: $showDelete) { DeleteAccountView() }
