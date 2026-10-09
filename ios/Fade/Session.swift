@@ -140,6 +140,19 @@ final class Session {
             ("invalid_buybacks_per_week", "Buybacks per week must be between 1 and 50."),
             ("invalid_buyback_policy", "Pick a buyback policy."),
             ("not_signed_in", "You're signed out. Please sign in again."),
+            ("insufficient_balance", "You don't have enough available coins for that."),
+            ("market_not_open", "This game has started or betting on it is closed."),
+            ("market_not_found", "That market isn't available."),
+            ("market_started", "The game has started, so this can't be changed. Unfilled shares cancel automatically."),
+            ("invalid_outcome", "Pick a side."),
+            ("invalid_price", "Price must be between 1¢ and 99¢."),
+            ("invalid_shares", "Enter a whole number of shares, 1 or more."),
+            ("not_enough_shares", "Not enough shares left — someone else may have just taken some."),
+            ("offer_not_open", "This offer is no longer open."),
+            ("offer_not_found", "That offer isn't available."),
+            ("cannot_take_own_offer", "You can't take your own offer."),
+            ("not_offer_maker", "Only the person who made an offer can cancel it."),
+            ("not_a_member", "You're not a member of that group."),
         ]
         for (code, message) in known where raw.contains(code) { return message }
         return raw

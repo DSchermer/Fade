@@ -13,6 +13,8 @@ targets:
     type: application
     platform: iOS
     sources: [Fade]
+    scheme:
+      testTargets: [FadeTests]
     dependencies:
       - package: Supabase
     # TURN ON once the paid Apple Developer account is active (a free Personal Team can't sign it):
@@ -36,3 +38,14 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Fade
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         TARGETED_DEVICE_FAMILY: "1"
+  FadeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [FadeTests]
+    dependencies:
+      - target: Fade
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"

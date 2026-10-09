@@ -3,18 +3,23 @@ import UIKit
 
 struct GroupDetailView: View {
     @Environment(GroupStore.self) private var groups
-    let membership: GroupMembership
+    let membership: GroupMembership   // as it was when this screen opened
 
     @State private var members: [GroupMember] = []
     @State private var copied = false
 
     private var group: GroupInfo { membership.group }
+    /// Always the latest balance (it changes whenever you post, take or cancel).
+    private var live: GroupMembership { groups.memberships.first { $0.id == membership.id } ?? membership }
 
     var body: some View {
         List {
             Section("Your balance") {
-                LabeledContent("Total", value: "\(Coins.format(membership.balance)) coins")
-                LabeledContent("Available to bet", value: "\(Coins.format(membership.available)) coins")
+                LabeledContent("Total", value: "\(Coins.format(live.balance)) coins")
+                LabeledContent("Available to bet", value: "\(Coins.format(live.available)) coins")
+                if live.escrow > 0 {
+                    LabeledContent("Tied up in offers & bets", value: "\(Coins.format(live.escrow)) coins")
+                }
             }
 
             Section {
@@ -39,9 +44,19 @@ struct GroupDetailView: View {
 
             Section("Bets") {
                 NavigationLink {
-                    GamesView()
+                    GamesView(groupID: group.id)
                 } label: {
                     Label("Browse games", systemImage: "sportscourt")
+                }
+                NavigationLink {
+                    OpenOffersView(groupID: group.id)
+                } label: {
+                    Label("Open offers", systemImage: "tray.full")
+                }
+                NavigationLink {
+                    MyBetsView(groupID: group.id)
+                } label: {
+                    Label("My bets", systemImage: "ticket")
                 }
             }
 

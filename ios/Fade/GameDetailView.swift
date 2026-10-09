@@ -3,6 +3,7 @@ import SwiftUI
 struct GameDetailView: View {
     @Environment(MarketStore.self) private var store
     let game: Game
+    let groupID: UUID
 
     @State private var loaded: GameMarkets?
     @State private var isLoading = true
@@ -17,13 +18,13 @@ struct GameDetailView: View {
 
             if let loaded {
                 if !loaded.moneylines.isEmpty {
-                    Section("Moneyline") { ForEach(loaded.moneylines) { MarketLine(market: $0) } }
+                    Section("Moneyline") { ForEach(loaded.moneylines) { MarketLine(market: $0, groupID: groupID) } }
                 }
-                LinesSection(title: "Spread", rows: loaded.spreads)
-                LinesSection(title: "Over / Under", rows: loaded.totals)
+                LinesSection(title: "Spread", rows: loaded.spreads, groupID: groupID)
+                LinesSection(title: "Over / Under", rows: loaded.totals, groupID: groupID)
 
                 Section {
-                    Text("Making and taking offers on these markets arrives in the next update.")
+                    Text("Tap a market to see offers in your group, make your own, or take someone else's.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             } else if isLoading {
@@ -43,14 +44,15 @@ struct GameDetailView: View {
 private struct LinesSection: View {
     let title: String
     let rows: [MarketRow]
+    let groupID: UUID
 
     var body: some View {
         if let main = GameMarkets.mainLine(rows) {
             Section(title) {
-                MarketLine(market: main)
+                MarketLine(market: main, groupID: groupID)
                 if rows.count > 1 {
                     DisclosureGroup("More lines (\(rows.count - 1))") {
-                        ForEach(rows.filter { $0.id != main.id }) { MarketLine(market: $0) }
+                        ForEach(rows.filter { $0.id != main.id }) { MarketLine(market: $0, groupID: groupID) }
                     }
                 }
             }
@@ -60,12 +62,17 @@ private struct LinesSection: View {
 
 private struct MarketLine: View {
     let market: MarketRow
+    let groupID: UUID
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(market.title)
-            if let subtitle = market.subtitle {
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+        NavigationLink {
+            MarketDetailView(groupID: groupID, market: market)
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(market.title)
+                if let subtitle = market.subtitle {
+                    Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                }
             }
         }
     }

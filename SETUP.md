@@ -1,3 +1,38 @@
+# Setup — Milestone 5 (offers and bets)
+
+## 1. Supabase (SQL Editor, copy each file with `pbcopy` as before)
+1. `pbcopy < ../supabase/migrations/20261008000005_offers.sql` → new query → paste → **Run**. (From the repo root drop the `../`.)
+2. `pbcopy < ../supabase/ops/schedule_auto_cancel.sql` → new query → paste → **Run**. It schedules the job that cancels unfilled shares when a game starts (every minute). It prints a job number.
+3. Check: `select * from check_ledger_integrity();` and `select * from check_betting_integrity();` — both must return **no rows**.
+
+## 2. App
+`git pull`, `cd ios && xcodegen`, Run. (xcodegen now also creates a test target; ignore it for now.)
+
+## What to tap to test Milestone 5 (you need TWO accounts: test1 and test2, both in the same group)
+Use the simulator: sign in as `test1@example.com`, later sign out and sign in as `test2@example.com` (both are in the group from Milestone 3; if test2 isn't, join with the code).
+
+**As test1 (the maker):**
+1. Open the group → **Browse games** → pick a game starting later than now → tap **Moneyline** (or any line).
+2. Tap **Make an offer**. Pick a side, type a price of `60` and `100` shares. The screen should say: **You risk 60 coins, you win +40 coins, winner collects 100 coins.** (If you only have 100 coins it will say you can afford it; try 200 shares and watch it refuse: "You only have … available".)
+3. Tap **Post**. Back on the group screen: **Available** drops by 60 and **Tied up in offers & bets** shows 60.
+4. Group → **My bets**: your offer is listed with "Cancel 100 unfilled shares".
+
+**As test2 (the taker):**
+5. Sign out (gear → Sign out), sign in as `test2@example.com`, open the group → **Open offers**: you see test1's offer ("@test1 backs …, 60¢, 100 of 100 shares left").
+6. Tap it. Set **Shares: 50**. The screen should say **You risk 20 coins, you win +30 coins; @test1 risks 30 coins; winner collects 50 coins.** Tap **Confirm**.
+7. Your available coins drop by 20. **My bets** shows the bet: "Waiting for the game to start".
+
+**Back as test1:**
+8. **My bets**: the offer now says "50 of 100 shares left" and "50 shares already taken — those bets stand", and the bet appears under **Your bets**.
+9. Tap **Cancel 50 unfilled shares** → confirm. You get 30 coins back; the 30 coins in the bet stay tied up.
+
+**Rules to try:**
+10. As test1 open your own offer from a market screen: tapping it does nothing (you can't take your own offer).
+11. Switch the price format (gear → Price format → American), reopen Make an offer: type `-150` — it should show **Actual price: 60¢ (-150)**.
+12. In the SQL Editor run both integrity checks again: still **no rows**. Also `select sum(available + escrow) from group_members;` should equal 100 coins × the number of members (plus any buybacks) — betting never creates or destroys coins.
+
+---
+
 # Setup — Milestone 4 (real games from Polymarket)
 
 ## 1. Supabase (SQL Editor, one query at a time)

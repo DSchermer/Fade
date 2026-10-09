@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GamesView: View {
     @Environment(MarketStore.self) private var markets
+    let groupID: UUID
     @State private var league: String?
 
     private var days: [(day: Date, games: [Game])] {
@@ -16,7 +17,7 @@ struct GamesView: View {
                 Section(day.day.formatted(.dateTime.weekday(.wide).month().day())) {
                     ForEach(day.games) { game in
                         NavigationLink {
-                            GameDetailView(game: game)
+                            GameDetailView(game: game, groupID: groupID)
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(game.title).font(.headline)
