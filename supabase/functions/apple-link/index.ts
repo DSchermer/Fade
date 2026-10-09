@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -7,6 +5,22 @@ const APPLE_KEY_ID = Deno.env.get("APPLE_KEY_ID")!;
 const APPLE_TEAM_ID = Deno.env.get("APPLE_TEAM_ID")!;
 const APPLE_PRIVATE_KEY = Deno.env.get("APPLE_PRIVATE_KEY")!; // the whole .p8 file for the Sign in with Apple key
 const APPLE_BUNDLE_ID = Deno.env.get("APPLE_BUNDLE_ID") ?? "com.dschermer.fade";
+
+/** Our own database and sign-in service are called with plain web requests. The service key can be the older long `eyJ…` kind or
+ *  the newer short `sb_…` kind: the newer kind goes in the `apikey` header only. */
+const serviceHeaders = (): Record<string, string> =>
+  SERVICE_KEY.startsWith("eyJ")
+    ? { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" }
+    : { apikey: SERVICE_KEY, "content-type": "application/json" };
+
+/** Who is calling? Ask the sign-in service about the caller's own token. Returns their user id, or null. */
+async function userIdFromToken(token: string): Promise<string | null> {
+  if (!token) return null;
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: ANON_KEY, authorization: `Bearer ${token}` } });
+  if (!res.ok) return null;
+  const user = await res.json().catch(() => null);
+  return user?.id ?? null;
+}
 
 const b64url = (data: ArrayBuffer | Uint8Array | string) => {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
@@ -31,9 +45,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 Deno.serve(async (req) => {
   const jwt = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-  const { data: user, error: userError } = await admin.auth.getUser(jwt);
-  if (userError || !user?.user) return json({ error: "not signed in" }, 401);
+  const userId = await userIdFromToken(jwt);
+  if (!userId) return json({ error: "not signed in" }, 401);
 
   const { authorizationCode } = await req.json().catch(() => ({}));
   if (!authorizationCode) return json({ error: "missing authorizationCode" }, 400);
@@ -52,7 +65,11 @@ Deno.serve(async (req) => {
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.refresh_token) return json({ error: "apple refused", detail: body.error ?? res.status }, 502);
 
-  const { error } = await admin.from("apple_tokens").upsert({ user_id: user.user.id, refresh_token: body.refresh_token });
-  if (error) return json({ error: error.message }, 500);
+  const save = await fetch(`${SUPABASE_URL}/rest/v1/apple_tokens?on_conflict=user_id`, {
+    method: "POST",
+    headers: { ...serviceHeaders(), prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ user_id: userId, refresh_token: body.refresh_token }),
+  });
+  if (!save.ok) return json({ error: `could not save token (${save.status})` }, 500);
   return json({ ok: true });
 });

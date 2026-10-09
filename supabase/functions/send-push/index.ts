@@ -1,15 +1,20 @@
 // Sends queued push notifications through Apple's push service (APNs).
 // Called once a minute by a database job (supabase/ops/schedule_push.sql) using the service-role key.
 // UNTESTED against Apple (needs the paid Apple Developer account) — see docs/APPLE_ACCOUNT_STEPS.md.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const KEY_ID = Deno.env.get("APNS_KEY_ID")!;
 const TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
 const PRIVATE_KEY = Deno.env.get("APNS_PRIVATE_KEY")!; // the whole .p8 file, including the BEGIN/END lines
 const BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID") ?? "com.dschermer.fade";
-const PUSH_SECRET = Deno.env.get("PUSH_SECRET");   // optional: our own shared secret for the database job
+const PUSH_SECRET = Deno.env.get("PUSH_SECRET");   // our own shared secret for the database job (Edge Function secret + Vault secret `push_secret`)
+
+/** Our own database and sign-in service are called with plain web requests. The service key can be the older long `eyJ…` kind or
+ *  the newer short `sb_…` kind: the newer kind goes in the `apikey` header only. */
+const serviceHeaders = (): Record<string, string> =>
+  SERVICE_KEY.startsWith("eyJ")
+    ? { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" }
+    : { apikey: SERVICE_KEY, "content-type": "application/json" };
 
 const b64url = (data: ArrayBuffer | Uint8Array | string) => {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
@@ -34,27 +39,22 @@ async function apnsToken(): Promise<string> {
 }
 
 Deno.serve(async (req) => {
-  // Only the database job may trigger sending: it proves itself with the service-role key (Authorization header) or, if the
-  // project's injected key has a different format, with our own PUSH_SECRET (x-push-secret header).
+  // Only the database job may trigger sending. It proves itself with our own shared secret (x-push-secret header). The service key is
+  // also accepted, but the project's injected key can be in a different format than the one the job holds, so the secret is the real gate.
   const auth = req.headers.get("Authorization") ?? "";
-  const viaKey = auth === `Bearer ${SERVICE_KEY}`;
   const viaSecret = !!PUSH_SECRET && req.headers.get("x-push-secret") === PUSH_SECRET;
-  if (!viaKey && !viaSecret) {
-    // TEMPORARY diagnostics (first 3 characters + length only, never the values) to find out why the keys differ.
-    return new Response(JSON.stringify({
-      error: "forbidden",
-      received: { starts: auth.slice(7, 10), length: Math.max(auth.length - 7, 0), push_secret_header: !!req.headers.get("x-push-secret") },
-      expected: { starts: (SERVICE_KEY ?? "").slice(0, 3), length: (SERVICE_KEY ?? "").length, push_secret_configured: !!PUSH_SECRET },
-    }), { status: 403, headers: { "content-type": "application/json" } });
-  }
+  const viaKey = !!SERVICE_KEY && auth === `Bearer ${SERVICE_KEY}`;
+  if (!viaSecret && !viaKey) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { "content-type": "application/json" } });
 
-  const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-  const { data: rows, error } = await supabase.rpc("claim_notifications", { p_limit: 100 });
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  const claim = await fetch(`${SUPABASE_URL}/rest/v1/rpc/claim_notifications`, {
+    method: "POST", headers: serviceHeaders(), body: JSON.stringify({ p_limit: 100 }),
+  });
+  if (!claim.ok) return new Response(JSON.stringify({ error: `claim_notifications ${claim.status}`, detail: (await claim.text()).slice(0, 300) }), { status: 500 });
+  const rows: any[] = await claim.json();
 
   // one queued message can go to several phones
   const byMessage = new Map<number, any[]>();
-  for (const r of rows ?? []) byMessage.set(r.id, [...(byMessage.get(r.id) ?? []), r]);
+  for (const r of rows) byMessage.set(r.id, [...(byMessage.get(r.id) ?? []), r]);
 
   let sent = 0, failed = 0;
   const jwt = byMessage.size ? await apnsToken() : "";
@@ -86,7 +86,11 @@ Deno.serve(async (req) => {
         if (res.status === 410 || ["BadDeviceToken", "Unregistered", "DeviceTokenNotForTopic"].includes(body.reason)) dead.push(d.token);
       }
     }
-    await supabase.rpc("finish_notification", { p_id: id, p_ok: ok, p_error: ok ? null : lastError, p_dead_tokens: dead });
+    const fin = await fetch(`${SUPABASE_URL}/rest/v1/rpc/finish_notification`, {
+      method: "POST", headers: serviceHeaders(),
+      body: JSON.stringify({ p_id: id, p_ok: ok, p_error: ok ? null : lastError, p_dead_tokens: dead }),
+    });
+    if (!fin.ok) console.error("finish_notification failed", fin.status, (await fin.text()).slice(0, 300));
     ok ? sent++ : failed++;
   }
   return new Response(JSON.stringify({ sent, failed }), { headers: { "content-type": "application/json" } });

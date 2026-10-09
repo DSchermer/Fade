@@ -53,6 +53,7 @@ Then **Edge Functions → Secrets** (sometimes under Project Settings → Edge F
 | `APNS_TEAM_ID` | your Team ID |
 | `APNS_PRIVATE_KEY` | the **entire** contents of the push `.p8` file (open it in TextEdit, select all, copy), including the `-----BEGIN…` and `-----END…` lines |
 | `APNS_BUNDLE_ID` | `com.dschermer.fade` |
+| `PUSH_SECRET` | a random password you make with `openssl rand -hex 24 \| pbcopy`; the same value also goes into Vault as `push_secret` (§7) |
 | `APPLE_KEY_ID` | Key ID of the **Sign in with Apple** key |
 | `APPLE_TEAM_ID` | your Team ID |
 | `APPLE_PRIVATE_KEY` | the entire contents of the Sign in with Apple `.p8` |
@@ -61,10 +62,12 @@ Then **Edge Functions → Secrets** (sometimes under Project Settings → Edge F
 The functions also get `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` from Supabase automatically; don't add those.
 
 ## 7. Start the push sender
-1. Supabase → **Project Settings** → **API Keys** → find the **service_role** key (on the "Legacy API keys" tab if the page has tabs; a long string starting `eyJ…`). **This key is a master password. Don't put it in the repository, the app, a screenshot or a chat.**
-2. Supabase → **Integrations → Vault** (or **Database → Vault**) → **Add new secret** → Name `service_role_key` → paste the key → Save. (Storing it here, instead of inside a SQL query, keeps it out of the SQL editor's saved history.)
-3. Run `supabase/ops/schedule_push.sql` in the SQL editor. It schedules the sender every minute and prints `service_role_key_stored = 1`.
-4. Check it ran after a couple of minutes: `select status, return_message from cron.job_run_details order by start_time desc limit 5;` (status `succeeded`), and `select * from public.notification_outbox order by id desc limit 5;` (rows get a `sent_at`).
+1. Supabase → **Project Settings** → **API Keys** → **Legacy API keys** tab → reveal and copy the **service_role** key (long string starting `eyJ…`; NOT the `anon` one). It's a master password: never put it in the repository, the app, a screenshot or a chat.
+2. Supabase → **Integrations → Vault** → **Add new secret** → Name `service_role_key` → paste → Save.
+3. In Terminal run `openssl rand -hex 24 | pbcopy`. Paste that value as an Edge Function secret named `PUSH_SECRET` (Edge Functions → Secrets), and again in Vault as a new secret named `push_secret`. (Same value in both places.)
+4. Redeploy `send-push` (paste the current `supabase/functions/send-push/index.ts`).
+5. Run `supabase/ops/schedule_push.sql` in the SQL editor. It prints `secrets_stored = 2`.
+6. After two minutes check: `select created, status_code, left(content::text, 200) as answer from net._http_response order by created desc limit 3;` (expect `200`), and later `select * from public.notification_outbox order by id desc limit 5;` (rows get a `sent_at`).
 
 ## 8. Switch Apple revocation on (required before App Store)
 Apple requires that deleting an account also revokes the Sign in with Apple connection. Our Edge Functions do that; the app only calls them when the flag is on.

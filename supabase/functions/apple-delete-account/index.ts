@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -7,6 +5,22 @@ const APPLE_KEY_ID = Deno.env.get("APPLE_KEY_ID")!;
 const APPLE_TEAM_ID = Deno.env.get("APPLE_TEAM_ID")!;
 const APPLE_PRIVATE_KEY = Deno.env.get("APPLE_PRIVATE_KEY")!;
 const APPLE_BUNDLE_ID = Deno.env.get("APPLE_BUNDLE_ID") ?? "com.dschermer.fade";
+
+/** Our own database and sign-in service are called with plain web requests. The service key can be the older long `eyJ…` kind or
+ *  the newer short `sb_…` kind: the newer kind goes in the `apikey` header only. */
+const serviceHeaders = (): Record<string, string> =>
+  SERVICE_KEY.startsWith("eyJ")
+    ? { apikey: SERVICE_KEY, authorization: `Bearer ${SERVICE_KEY}`, "content-type": "application/json" }
+    : { apikey: SERVICE_KEY, "content-type": "application/json" };
+
+/** Who is calling? Ask the sign-in service about the caller's own token. Returns their user id, or null. */
+async function userIdFromToken(token: string): Promise<string | null> {
+  if (!token) return null;
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: { apikey: ANON_KEY, authorization: `Bearer ${token}` } });
+  if (!res.ok) return null;
+  const user = await res.json().catch(() => null);
+  return user?.id ?? null;
+}
 
 const b64url = (data: ArrayBuffer | Uint8Array | string) => {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
@@ -31,13 +45,13 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 Deno.serve(async (req) => {
   const jwt = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
-  const { data: user, error: userError } = await admin.auth.getUser(jwt);
-  if (userError || !user?.user) return json({ error: "not signed in" }, 401);
-  const userId = user.user.id;
+  const userId = await userIdFromToken(jwt);
+  if (!userId) return json({ error: "not signed in" }, 401);
 
   // 1. Tell Apple to disconnect this app from the person's Apple ID (only if we have a stored token — debug email accounts have none).
-  const { data: stored } = await admin.from("apple_tokens").select("refresh_token").eq("user_id", userId).maybeSingle();
+  const lookup = await fetch(`${SUPABASE_URL}/rest/v1/apple_tokens?select=refresh_token&user_id=eq.${userId}`, { headers: serviceHeaders() });
+  if (!lookup.ok) return json({ error: `could not look up the Apple token (${lookup.status})` }, 500);
+  const stored = (await lookup.json().catch(() => []))[0];
   if (stored?.refresh_token) {
     const res = await fetch("https://appleid.apple.com/auth/revoke", {
       method: "POST",
@@ -54,10 +68,13 @@ Deno.serve(async (req) => {
   }
 
   // 2. Run the normal deletion as the signed-in person (it removes their data and then their sign-in account).
-  const asUser = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: `Bearer ${jwt}` } }, auth: { persistSession: false } });
-  const { error } = await asUser.rpc("delete_my_account");
-  if (error) return json({ error: error.message }, 500);
+  const del = await fetch(`${SUPABASE_URL}/rest/v1/rpc/delete_my_account`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY, authorization: `Bearer ${jwt}`, "content-type": "application/json" },
+    body: "{}",
+  });
+  if (!del.ok) return json({ error: `delete failed (${del.status})`, detail: (await del.text()).slice(0, 300) }, 500);
 
-  await admin.from("apple_tokens").delete().eq("user_id", userId);
+  await fetch(`${SUPABASE_URL}/rest/v1/apple_tokens?user_id=eq.${userId}`, { method: "DELETE", headers: serviceHeaders() });
   return json({ ok: true });
 });
