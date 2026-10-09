@@ -4,7 +4,7 @@ const PEM = privateKey.export({ type: "pkcs8", format: "pem" });
 const which = process.argv[2];
 const ENV = {
   SUPABASE_URL: "https://proj.supabase.co", SUPABASE_SERVICE_ROLE_KEY: "sb_secret_" + "x".repeat(31), SUPABASE_ANON_KEY: "sb_publishable_abc",
-  APNS_KEY_ID: "KEYID12345", APNS_TEAM_ID: "TEAMID1234", APNS_PRIVATE_KEY: PEM, APNS_BUNDLE_ID: "com.dschermer.fade", PUSH_SECRET: "s3cret",
+  APNS_KEY_ID: "KEYID12345", APNS_TEAM_ID: "TEAMID1234", APNS_PRIVATE_KEY: PEM, APNS_BUNDLE_ID: "com.dschermer.fade", PUSH_SECRET: "s3cret\n",
   APPLE_KEY_ID: "KEYID67890", APPLE_TEAM_ID: "TEAMID1234", APPLE_PRIVATE_KEY: PEM.trim().replace(/\n/g, "\\n"), APPLE_BUNDLE_ID: "com.dschermer.fade",
 };
 globalThis.Deno = { env: { get: (k) => ENV[k] }, serve: (h) => { globalThis.handler = h; } };
@@ -27,6 +27,8 @@ if (which === "send-push") {
     if (url.includes("push.apple.com")) return url.includes("cdcdcd") ? J({ reason: "BadDeviceToken" }, 400) : new Response("", { status: 200 });
     return new Response(null, { status: 204 });
   };
+  r = await handler(new Request("https://f/", { method: "POST", headers: { "x-push-secret": "wrong", Authorization: "Bearer eyJanything" } }));
+  assert(r.status === 403 && calls.length === 0, "wrong shared secret -> 403");
   r = await handler(new Request("https://f/", { method: "POST", headers: { "x-push-secret": "s3cret", Authorization: "Bearer eyJanything" } }));
   const body = await r.json();
   assert(r.status === 200 && body.sent === 2 && body.failed === 0, `with the shared secret: 200, sent=2 (${JSON.stringify(body)})`);

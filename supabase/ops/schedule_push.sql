@@ -17,7 +17,7 @@ select cron.schedule('fade-send-push', '* * * * *', $$
     headers := jsonb_build_object(
                  'Content-Type', 'application/json',
                  'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key'),
-                 'x-push-secret', (select decrypted_secret from vault.decrypted_secrets where name = 'push_secret')),
+                 'x-push-secret', btrim((select decrypted_secret from vault.decrypted_secrets where name = 'push_secret'), E' \n\r\t')),
     body    := '{}'::jsonb)
 $$);
 

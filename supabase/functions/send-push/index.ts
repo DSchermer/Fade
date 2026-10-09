@@ -7,7 +7,7 @@ const KEY_ID = Deno.env.get("APNS_KEY_ID")!;
 const TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
 const PRIVATE_KEY = Deno.env.get("APNS_PRIVATE_KEY")!; // the whole .p8 file, including the BEGIN/END lines
 const BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID") ?? "com.dschermer.fade";
-const PUSH_SECRET = Deno.env.get("PUSH_SECRET");   // our own shared secret for the database job (Edge Function secret + Vault secret `push_secret`)
+const PUSH_SECRET = (Deno.env.get("PUSH_SECRET") ?? "").trim();   // stray spaces/line breaks from copy-paste are ignored   // our own shared secret for the database job (Edge Function secret + Vault secret `push_secret`)
 
 /** Our own database and sign-in service are called with plain web requests. The service key can be the older long `eyJ…` kind or
  *  the newer short `sb_…` kind: the newer kind goes in the `apikey` header only. */
@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
   // Only the database job may trigger sending. It proves itself with our own shared secret (x-push-secret header). The service key is
   // also accepted, but the project's injected key can be in a different format than the one the job holds, so the secret is the real gate.
   const auth = req.headers.get("Authorization") ?? "";
-  const viaSecret = !!PUSH_SECRET && req.headers.get("x-push-secret") === PUSH_SECRET;
+  const viaSecret = PUSH_SECRET.length > 0 && (req.headers.get("x-push-secret") ?? "").trim() === PUSH_SECRET;
   const viaKey = !!SERVICE_KEY && auth === `Bearer ${SERVICE_KEY}`;
   if (!viaSecret && !viaKey) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403, headers: { "content-type": "application/json" } });
 
