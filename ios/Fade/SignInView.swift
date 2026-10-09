@@ -15,11 +15,13 @@ struct SignInView: View {
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
-            Text("Fade")
-                .font(.system(size: 56, weight: .heavy, design: .rounded))
-            Text("Bet your friends. Play money only.")
-                .font(.headline)
-                .foregroundStyle(.secondary)
+            VStack(spacing: 8) {
+                Text("Fade")
+                    .font(.system(size: 56, weight: .heavy, design: .rounded))
+                Text("Bet your friends. Play money only.")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
 
             if !AppConfig.isConfigured {

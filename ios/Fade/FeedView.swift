@@ -132,7 +132,7 @@ struct FeedItemDetailView: View {
                 }
             }
 
-            Section("Comments") {
+            Section {
                 if comments.isEmpty {
                     Text("No comments yet.").foregroundStyle(.secondary)
                 }
@@ -155,6 +155,8 @@ struct FeedItemDetailView: View {
                         }
                     }
                 }
+            } header: {
+                Text("Comments")
             } footer: {
                 Text("Touch and hold a comment to report it, mute, or block its author. Comments with offensive language are rejected.")
             }

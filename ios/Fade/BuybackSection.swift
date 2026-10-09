@@ -6,10 +6,10 @@ struct BuybackSection: View {
     @Environment(GroupStore.self) private var groups
 
     let groupID: UUID
-    /// Changes whenever my balance changes, so the status is re-checked.
     let balance: Int64
 
-    @State private var status: BuybackStatus?
+    /// Loaded by the group screen (a view that is always on screen), because this section is empty until you are broke.
+    @Binding var status: BuybackStatus?
     @State private var showConfirm = false
     @State private var errorMessage: String?
     @State private var isWorking = false
@@ -47,7 +47,6 @@ struct BuybackSection: View {
                 }
             }
         }
-        .task(id: balance) { status = await groups.buybackStatus(groupID: groupID) }
         .confirmationDialog("Buy back in?", isPresented: $showConfirm, titleVisibility: .visible) {
             Button("Buy back in for \(Coins.format(status?.amount ?? 0)) coins") { Task { await claim() } }
             Button("Not now", role: .cancel) {}

@@ -16,6 +16,7 @@ struct GroupDetailView: View {
     @State private var openVotes: [VoteRow] = []
     @State private var reportTarget: ReportTarget?
     @State private var memberToBlock: LeaderboardRow?
+    @State private var buyback: BuybackStatus?
 
     private var group: GroupInfo { membership.group }
     /// Always the latest balance (it changes whenever you post, take or cancel).
@@ -46,7 +47,7 @@ struct GroupDetailView: View {
                 }
             }
 
-            BuybackSection(groupID: group.id, balance: live.balance)
+            BuybackSection(groupID: group.id, balance: live.balance, status: $buyback)
 
             Section {
                 HStack {
@@ -200,9 +201,13 @@ struct GroupDetailView: View {
             members = await groups.members(of: group.id)
             openVotes = await groups.votes(groupID: group.id).filter(\.isOpen)
         }
+        .task(id: live.balance) {      // re-checked whenever my balance changes
+            buyback = await groups.buybackStatus(groupID: group.id)
+        }
         .refreshable {
             members = await groups.members(of: group.id)
             openVotes = await groups.votes(groupID: group.id).filter(\.isOpen)
+            buyback = await groups.buybackStatus(groupID: group.id)
         }
     }
 
