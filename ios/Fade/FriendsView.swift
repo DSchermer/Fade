@@ -1,18 +1,14 @@
 import SwiftUI
 
-/// Friends leaderboard, requests, and finding people to add.
+/// Friends: the leaderboard of people you've added, requests in and out, and finding people to add.
 struct FriendsView: View {
-    @Environment(FriendStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
-
-    enum Tab: String, CaseIterable, Identifiable {
-        case board = "Leaderboard"
-        case requests = "Requests"
-        case add = "Add"
-        var id: String { rawValue }
+    enum Part: String, CaseIterable, Hashable {
+        case board, requests, add
     }
 
-    @State private var tab: Tab = .board
+    @Environment(FriendStore.self) private var store
+
+    @State private var part: Part
     @State private var scores: [FriendScore] = []
     @State private var requests: [FriendRequest] = []
     @State private var suggestions: [FriendSuggestion] = []
@@ -21,145 +17,207 @@ struct FriendsView: View {
     @State private var friendToRemove: FriendScore?
     @State private var isBusy = false
 
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Picker("", selection: $tab) {
-                    ForEach(Tab.allCases) { t in
-                        Text(t == .requests && incoming > 0 ? "Requests (\(incoming))" : t.rawValue).tag(t)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .padding()
+    init(initialTab: Part = .board) {
+        _part = State(initialValue: initialTab)
+    }
 
-                switch tab {
-                case .board: board
-                case .requests: requestList
-                case .add: addList
-                }
-            }
-            .navigationTitle("Friends")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-            .task { await reload() }
-            .refreshable { await reload() }
-            .confirmationDialog("Remove \(friendToRemove?.displayName ?? "friend")?", isPresented: Binding(
-                get: { friendToRemove != nil }, set: { if !$0 { friendToRemove = nil } }
-            ), titleVisibility: .visible, presenting: friendToRemove) { friend in
-                Button("Remove friend", role: .destructive) { Task { await remove(friend) } }
-                Button("Cancel", role: .cancel) {}
-            }
+    private var incoming: [FriendRequest] { requests.filter { $0.direction == "incoming" } }
+    private var outgoing: [FriendRequest] { requests.filter { $0.direction == "outgoing" } }
+
+    private func title(_ part: Part) -> String {
+        switch part {
+        case .board: return "Leaderboard"
+        case .requests: return incoming.isEmpty ? "Requests" : "Requests (\(incoming.count))"
+        case .add: return "Add"
         }
     }
 
-    private var incoming: Int { requests.filter { $0.direction == "incoming" }.count }
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                FadeSegmented(options: Part.allCases, title: title, selection: $part)
+                    .padding(.horizontal, 16)
+                switch part {
+                case .board: board
+                case .requests: requestsList
+                case .add: addList
+                }
+            }
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+        }
+        .refreshable { await reload() }
+        .fadeScreen()
+        .navigationTitle("Friends")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await reload() }
+        .confirmationDialog("Remove \(friendToRemove?.displayName ?? "friend")?", isPresented: Binding(
+            get: { friendToRemove != nil }, set: { if !$0 { friendToRemove = nil } }
+        ), titleVisibility: .visible, presenting: friendToRemove) { friend in
+            Button("Remove friend", role: .destructive) { Task { await remove(friend) } }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
 
     // MARK: Leaderboard
 
     private var board: some View {
-        List {
-            Section {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(spacing: 0) {
                 ForEach(Array(scores.enumerated()), id: \.element.id) { index, row in
-                    HStack(spacing: 12) {
-                        Text("\(index + 1)").font(.headline).monospacedDigit().frame(width: 28)
-                            .foregroundStyle(index == 0 ? Color.orange : Color.secondary)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(row.isMe ? "\(row.displayName) (you)" : row.displayName).font(.headline)
-                            Text("Record \(row.wins)–\(row.losses)").font(.footnote).foregroundStyle(.secondary)
+                    FriendScoreRow(rank: index + 1, row: row)
+                        .overlay(alignment: .bottom) {
+                            if index < scores.count - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
                         }
-                        Spacer()
-                        Text(row.score.signedCoins)
-                            .font(.headline).monospacedDigit()
-                            .foregroundStyle(row.score > 0 ? Color.green : (row.score < 0 ? Color.red : Color.primary))
-                    }
-                    .swipeActions {
-                        if !row.isMe {
-                            Button("Remove", role: .destructive) { friendToRemove = row }
+                        .contextMenu {
+                            if !row.isMe {
+                                Button("Remove friend", systemImage: "person.badge.minus", role: .destructive) { friendToRemove = row }
+                            }
                         }
-                    }
                 }
-            } footer: {
-                Text("Global lifetime score: net profit across all your groups, past seasons included. Buybacks count against you. Swipe a friend to remove them.")
             }
+            .padding(.horizontal, 14)
+            .fadeCardBackground()
             if scores.count <= 1 {
-                Section {
-                    Text("Add friends to see how you rank. Try the Add tab.").foregroundStyle(.secondary)
-                }
+                Text("Add friends to see how you rank. Try the Add tab.")
+                    .font(.fadeBody)
+                    .foregroundStyle(Theme.text2)
             }
+            Text("Lifetime score is net profit across all your groups, past seasons included. Buybacks never count as winnings. Touch and hold a friend to remove them.")
+                .font(.caption)
+                .foregroundStyle(Theme.text3)
+                .fixedSize(horizontal: false, vertical: true)
+            if let message { messageLine(message) }
         }
+        .padding(.horizontal, 16)
     }
 
     // MARK: Requests
 
-    private var requestList: some View {
-        List {
-            let incomingRows = requests.filter { $0.direction == "incoming" }
-            let outgoingRows = requests.filter { $0.direction == "outgoing" }
-            if !incomingRows.isEmpty {
-                Section("Wants to be your friend") {
-                    ForEach(incomingRows) { request in
-                        HStack {
-                            Text(request.displayName)
-                            Spacer()
-                            Button("Decline") { Task { await respond(request, accept: false) } }.buttonStyle(.bordered)
-                            Button("Accept") { Task { await respond(request, accept: true) } }.buttonStyle(.borderedProminent)
+    private var requestsList: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if !incoming.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel("Wants to be your friend")
+                    ForEach(incoming) { request in
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 12) {
+                                Avatar(name: request.username ?? "?", size: 44)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(request.username ?? "deleted user").font(.fadeHeadline.weight(.bold)).foregroundStyle(Theme.text)
+                                    Text("Sent \(RelativeTime.agoText(from: request.createdAt))").font(.caption).foregroundStyle(Theme.text2)
+                                }
+                                Spacer()
+                            }
+                            HStack(spacing: 8) {
+                                Button("Accept") { Task { await respond(request, accept: true) } }
+                                    .buttonStyle(FadeButtonStyle(kind: .primary, height: 44))
+                                Button("Decline") { Task { await respond(request, accept: false) } }
+                                    .buttonStyle(FadeButtonStyle(kind: .quiet, height: 44))
+                            }
                         }
+                        .fadeCard(padding: 14)
                     }
                 }
             }
-            if !outgoingRows.isEmpty {
-                Section("Waiting for them") {
-                    ForEach(outgoingRows) { request in
-                        HStack {
-                            Text(request.displayName)
-                            Spacer()
-                            Button("Cancel") { Task { await cancel(request) } }.buttonStyle(.bordered)
+            if !outgoing.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel("Waiting for them")
+                    VStack(spacing: 0) {
+                        ForEach(Array(outgoing.enumerated()), id: \.element.id) { index, request in
+                            HStack(spacing: 12) {
+                                Avatar(name: request.username ?? "?", size: 40)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(request.username ?? "deleted user").font(.fadeHeadline.weight(.semibold)).foregroundStyle(Theme.text)
+                                    Text("Request sent \(RelativeTime.agoText(from: request.createdAt))").font(.caption).foregroundStyle(Theme.text2)
+                                }
+                                Spacer()
+                                Button("Cancel") { Task { await cancel(request) } }
+                                    .buttonStyle(.fadeSecondaryCompact)
+                            }
+                            .frame(minHeight: 64)
+                            .overlay(alignment: .bottom) {
+                                if index < outgoing.count - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
+                            }
                         }
                     }
+                    .padding(.horizontal, 14)
+                    .fadeCardBackground()
                 }
             }
             if requests.isEmpty {
-                Section { Text("No requests right now.").foregroundStyle(.secondary) }
+                EmptyStateCard(systemImage: "person.badge.plus", title: "No requests right now", message: "Requests you send and receive show up here.")
             }
-            if let message { Section { Text(message.text).foregroundStyle(message.ok ? Color.green : Color.red) } }
+            if let message { messageLine(message) }
         }
+        .padding(.horizontal, 16)
     }
 
     // MARK: Add
 
     private var addList: some View {
-        List {
-            Section {
-                TextField("Their username", text: $username)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionLabel("Add by username")
+                HStack(spacing: 10) {
+                    Text("@").font(.fadeHeadline).foregroundStyle(Theme.text2)
+                    TextField("username", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.fadeHeadline.weight(.medium))
+                        .foregroundStyle(Theme.text)
+                }
+                .padding(.horizontal, 16)
+                .frame(minHeight: 56)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
                 Button("Send friend request") { Task { await send(username) } }
+                    .buttonStyle(.fadePrimary)
                     .disabled(username.trimmingCharacters(in: .whitespaces).count < 3 || isBusy)
-            } header: {
-                Text("Add by username")
-            } footer: {
                 Text("Type their exact username. People who have blocked you, or whom you've blocked, can't be added.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.text2)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let message { messageLine(message) }
             }
 
-            if let message { Section { Text(message.text).foregroundStyle(message.ok ? Color.green : Color.red) } }
-
             if !suggestions.isEmpty {
-                Section("People from your groups") {
-                    ForEach(suggestions) { person in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(person.displayName)
-                                Text("\(person.sharedGroups) shared group\(person.sharedGroups == 1 ? "" : "s")")
-                                    .font(.footnote).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionLabel("People from your groups")
+                    VStack(spacing: 0) {
+                        ForEach(Array(suggestions.enumerated()), id: \.element.id) { index, person in
+                            HStack(spacing: 12) {
+                                Avatar(name: person.username ?? "?", size: 40)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(person.username ?? "deleted user").font(.fadeHeadline.weight(.semibold)).foregroundStyle(Theme.text)
+                                    Text("\(person.sharedGroups) shared group\(person.sharedGroups == 1 ? "" : "s")")
+                                        .font(.caption)
+                                        .foregroundStyle(Theme.text2)
+                                }
+                                Spacer()
+                                Button("Add") { Task { await send(person.username ?? "") } }
+                                    .buttonStyle(FadeButtonStyle(kind: .quiet, height: 44, fullWidth: false))
+                                    .disabled(isBusy)
                             }
-                            Spacer()
-                            Button("Add") { Task { await send(person.username ?? "") } }
-                                .buttonStyle(.bordered).disabled(isBusy)
+                            .frame(minHeight: 64)
+                            .overlay(alignment: .bottom) {
+                                if index < suggestions.count - 1 { Rectangle().fill(Theme.line).frame(height: 1) }
+                            }
                         }
                     }
+                    .padding(.horizontal, 14)
+                    .fadeCardBackground()
                 }
             }
         }
+        .padding(.horizontal, 16)
+    }
+
+    private func messageLine(_ message: (text: String, ok: Bool)) -> some View {
+        Text(message.text)
+            .font(.fadeCaption.weight(.semibold))
+            .foregroundStyle(message.ok ? Theme.win : Theme.loss)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: Actions

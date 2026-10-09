@@ -79,3 +79,17 @@ final class CountdownTests: XCTestCase {
         XCTAssertEqual(RelativeTime.countdown(until: at("2026-10-11T15:00:00Z"), from: now), "2d 3h")
     }
 }
+
+final class AgoTextTests: XCTestCase {
+    func testAgoText() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        let now = ISO8601DateFormatter().date(from: "2026-10-09T12:00:00Z")!
+        func at(_ s: String) -> Date { ISO8601DateFormatter().date(from: s)! }
+        XCTAssertEqual(RelativeTime.agoText(from: at("2026-10-09T11:59:50Z"), to: now, calendar: calendar), "just now")
+        XCTAssertEqual(RelativeTime.agoText(from: at("2026-10-09T09:00:00Z"), to: now, calendar: calendar), "3h ago")
+        XCTAssertEqual(RelativeTime.agoText(from: at("2026-10-07T12:00:00Z"), to: now, calendar: calendar), "2d ago")
+        XCTAssertEqual(RelativeTime.agoText(from: at("2026-09-20T12:00:00Z"), to: now, calendar: calendar), "on Sep 20")
+    }
+}

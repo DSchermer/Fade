@@ -69,7 +69,7 @@ final class GroupSummaryTests: XCTestCase {
             row(g2, a, net: 0, balance: 10000), row(g2, b, net: 0, balance: 10000),
         ]
         let summaries = GroupSummary.build(from: rows, me: UUID(uuidString: a)!)
-        XCTAssertEqual(summaries[UUID(uuidString: g1)!], GroupSummary(memberCount: 3, myRank: 2, myNet: 500))
+        XCTAssertEqual(summaries[UUID(uuidString: g1)!], GroupSummary(memberCount: 3, myRank: 2, myNet: 500, myBuybacks: 0))
         XCTAssertEqual(summaries[UUID(uuidString: g2)!]?.memberCount, 2)
         XCTAssertEqual(summaries[UUID(uuidString: g2)!]?.myNet, 0)
     }

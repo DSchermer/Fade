@@ -92,6 +92,7 @@ struct GroupSummary: Equatable {
     var memberCount: Int
     var myRank: Int?
     var myNet: Int64
+    var myBuybacks = 0
 
     /// One summary per group, from the leaderboard rows of all my groups. Rank = net profit, ties broken by balance
     /// (the same order the leaderboard uses).
@@ -103,7 +104,8 @@ struct GroupSummary: Equatable {
             result[groupID] = GroupSummary(
                 memberCount: members.count,
                 myRank: index.map { $0 + 1 },
-                myNet: index.map { ranked[$0].netProfit } ?? 0
+                myNet: index.map { ranked[$0].netProfit } ?? 0,
+                myBuybacks: index.map { ranked[$0].buybackCount } ?? 0
             )
         }
         return result

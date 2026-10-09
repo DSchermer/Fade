@@ -92,3 +92,29 @@ No new database step. `git pull`, `cd ios && xcodegen`, Run.
 
 ### What to send me
 Screenshots of the Bets tab (each of the three parts if you can), the Groups tab, a group page (Leaderboard and Members), the Votes part with an open vote, and anything that looks off or any Xcode error.
+
+
+---
+
+## Step R4 — Me tab, friends, settings, sign-in, and the rest
+
+No new database step. `git pull`, `cd ios && xcodegen`, Run.
+
+### Things to tap
+1. **Sign-in screen** (sign out first, from the Me tab): a big "fade." wordmark, the tagline, three numbered steps, the "free play money" note, the Apple button, the age/terms line, and "About coins and help resources" (opens the About & help screen). In a debug build the orange test-account box is still there.
+2. **Pick a username** (only for a brand-new account): "@" field, Continue.
+3. **Me tab.** Your name and avatar, the **Lifetime score** card (big +/− number, Record, Groups, Buybacks), a **Friends** preview (top of the friends leaderboard, a blue "n requests" tag, **See all**), then **Settings**:
+   - **Show prices as: ¢ | American** — switch it and look at the Games tab: prices change format everywhere.
+   - **Notifications** → green "allowed" card and five switches (turn one off and back on).
+   - **Blocked and muted people** → grouped lists with Unblock / Unmute and the short explanation.
+   - **About coins and help** (sheet), Terms, Privacy, Help — links.
+   - **Sign out**, and **Delete my account…** at the bottom.
+4. **Friends** (Me → See all): switch **Leaderboard | Requests | Add**.
+   - Leaderboard: rank, avatar, "Record 7–4", lifetime score; your row is tinted; touch and hold a friend to remove them.
+   - Requests: incoming cards with **Accept / Decline**; "Waiting for them" with **Cancel**.
+   - Add: type an exact username → **Send friend request**; "People from your groups" with **Add**.
+5. **Delete account** (use a spare debug account!): the red "This can't be undone" banner, six consequences, type **DELETE**, the red button turns on. Only do this on a throwaway account.
+6. **About & help**: the play-money card, "Need help?" with the National Council on Problem Gambling link and **Call 1-800-GAMBLER**, and the legal links.
+
+### What to send me
+Screenshots of the sign-in screen, the Me tab (scrolled to the top and the bottom), Friends (all three parts), and anything that looks off or any Xcode error.

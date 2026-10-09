@@ -21,7 +21,7 @@ struct MainTabView: View {
             GroupsTabView()
                 .toolbar(.hidden, for: .tabBar)
                 .tag(AppTab.groups)
-            SettingsView(asTab: true)
+            MeTabView()
                 .toolbar(.hidden, for: .tabBar)
                 .tag(AppTab.me)
         }

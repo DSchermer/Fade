@@ -13,14 +13,14 @@ enum Theme {
     // Text
     static let text = Color(light: 0x0E1318, dark: 0xF3F5F7)
     static let text2 = Color(light: 0x4D5967, dark: 0x98A2AE)
-    static let text3 = Color(light: 0x6B7683, dark: 0x7C8794)
+    static let text3 = Color(light: 0x626D7A, dark: 0x7C8794)
 
     // Accent and status
     static let accent = Color(light: 0x1F5FE0, dark: 0x4F8CFF)
     static let onAccent = Color(light: 0xFFFFFF, dark: 0x0A0C0F)  // text on an accent-coloured button
-    static let win = Color(light: 0x0F8A4B, dark: 0x34D17F)
-    static let loss = Color(light: 0xC7302F, dark: 0xFF6B6B)
-    static let pending = Color(light: 0x9A6700, dark: 0xF5B942)
+    static let win = Color(light: 0x097039, dark: 0x34D17F)
+    static let loss = Color(light: 0xB32B2A, dark: 0xFF6B6B)
+    static let pending = Color(light: 0x875800, dark: 0xF5B942)
 
     // The coin
     static let coin = Color(hex: 0xF5B942)

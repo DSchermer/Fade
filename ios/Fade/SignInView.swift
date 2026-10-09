@@ -13,59 +13,99 @@ struct SignInView: View {
     #endif
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            VStack(spacing: 8) {
-                Text("Fade")
-                    .font(.system(size: 56, weight: .heavy, design: .rounded))
-                Text("Bet your friends. Play money only.")
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer(minLength: 24)
 
-            if !AppConfig.isConfigured {
-                Text("Backend not configured yet — see SETUP.md (AppConfig.swift).")
-                    .font(.footnote)
-                    .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 10) {
+                (Text("fade").font(.system(size: 84, weight: .heavy)).tracking(-3)
+                    + Text(".").font(.system(size: 84, weight: .heavy)).foregroundColor(Theme.accent))
+                    .accessibilityLabel("Fade")
+                    .accessibilityAddTraits(.isHeader)
+                Text("Take the other side of your friends' picks.")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.text)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 14) {
+                step(1, "Post your own odds on real games")
+                step(2, "Friends take the other side of any part of it")
+                step(3, "Climb your group's leaderboard")
+            }
+            .padding(.top, 28)
+
+            Spacer(minLength: 24)
+
+            VStack(spacing: 14) {
+                HStack(spacing: 10) {
+                    CoinIcon(size: 22)
+                    Text("Fade coins are free play money. They have no cash value and can't be bought, sold or redeemed.")
+                        .font(.fadeCaption)
+                        .foregroundStyle(Theme.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+
+                if !AppConfig.isConfigured {
+                    Text("Backend not configured yet. See SETUP.md (AppConfig.swift).")
+                        .font(.fadeCaption)
+                        .foregroundStyle(Theme.pending)
+                        .multilineTextAlignment(.center)
+                }
+
+                if let message = session.errorMessage { ErrorLine(message) }
+
+                SignInWithAppleButton(.signIn, onRequest: { request in
+                    let nonce = Nonce.random()
+                    rawNonce = nonce
+                    request.requestedScopes = []          // we don't need the name or email
+                    request.nonce = Nonce.sha256(nonce)
+                }, onCompletion: { result in
+                    handle(result)
+                })
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .frame(height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .disabled(session.isBusy || !AppConfig.isConfigured)
+
+                #if DEBUG
+                debugLogin
+                #endif
+
+                Text(agreement)
+                    .font(.caption)
+                    .foregroundStyle(Theme.text2)
                     .multilineTextAlignment(.center)
+                    .tint(Theme.accent)
+
+                Button("About coins and help resources") { showLegal = true }
+                    .font(.fadeCaption.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(minHeight: 44)
             }
-
-            if let message = session.errorMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .multilineTextAlignment(.center)
-            }
-
-            SignInWithAppleButton(.signIn, onRequest: { request in
-                let nonce = Nonce.random()
-                rawNonce = nonce
-                request.requestedScopes = []          // we don't need the name or email
-                request.nonce = Nonce.sha256(nonce)
-            }, onCompletion: { result in
-                handle(result)
-            })
-            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-            .frame(height: 50)
-            .disabled(session.isBusy || !AppConfig.isConfigured)
-
-            #if DEBUG
-            debugLogin
-            #endif
-
-            Text(agreement)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .tint(.secondary)
-
-            NoMoneyNotice()
-            Button("About Fade coins & help resources") { showLegal = true }
-                .font(.footnote)
         }
-        .padding()
+        .padding(.horizontal, 24)
+        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .fadeScreen()
         .sheet(isPresented: $showLegal) { LegalView() }
+    }
+
+    private func step(_ number: Int, _ text: String) -> some View {
+        HStack(spacing: 14) {
+            Text("\(number)")
+                .font(.fadeBody.weight(.bold))
+                .foregroundStyle(Theme.text2)
+                .frame(width: 36, height: 36)
+                .background(Theme.raised, in: Circle())
+            Text(text)
+                .font(.fadeHeadline)
+                .foregroundStyle(Theme.text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     /// "By continuing you agree to the Terms of Use and Privacy Policy, and confirm you are 18 or older."
@@ -97,22 +137,26 @@ struct SignInView: View {
     #if DEBUG
     private var debugLogin: some View {
         VStack(spacing: 8) {
-            Text("Debug only — test accounts").font(.caption).foregroundStyle(.secondary)
+            Text("Debug only — test accounts").font(.caption).foregroundStyle(Theme.pending)
             TextField("test email", text: $debugEmail)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.emailAddress)
                 .autocorrectionDisabled()
-                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(Theme.raised, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             SecureField("password (6+ characters)", text: $debugPassword)
-                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(Theme.raised, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             Button("Sign in / create test account") {
                 Task { await session.debugEmailSignIn(email: debugEmail, password: debugPassword) }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.fadeQuiet)
             .disabled(debugEmail.isEmpty || debugPassword.count < 6 || session.isBusy || !AppConfig.isConfigured)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 10).strokeBorder(.orange.opacity(0.6)))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.pending.opacity(0.6), lineWidth: 1))
     }
     #endif
 }

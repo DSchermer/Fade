@@ -4,6 +4,8 @@
 
 ---
 
+> **UI redesign note (2026-10-09):** the screens were rebuilt. Where this file says "open the group, then Votes / Feed / Leaderboard", the group now lives on the **Groups** tab (tap its card) with tabs inside it: Leaderboard, Feed, Votes, Members. Settings, friends, notifications and "Blocked & muted" are on the **Me** tab. Browsing games and making/taking offers is on the **Games** tab; your bets are on the **Bets** tab. The tap-by-tap list for the new screens is in `REDESIGN_TESTING.md`.
+
 ## 0. How to use this file
 
 - Work top to bottom. Each part has checkboxes. If a step doesn't match what's written, **stop, screenshot it, and tell me the step number** (for example "E5 failed: …").

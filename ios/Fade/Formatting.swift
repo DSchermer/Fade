@@ -2,6 +2,14 @@ import Foundation
 
 /// Small, pure text helpers for dates, so they can be tested without a screen.
 enum RelativeTime {
+    /// "just now", "4m ago", "3h ago", "2d ago", or "on Oct 9" once it's more than a week old. For "Sent …".
+    static func agoText(from date: Date, to now: Date = Date(), calendar: Calendar = .current) -> String {
+        let short = Self.short(from: date, to: now, calendar: calendar)
+        if short == "now" { return "just now" }
+        if let first = short.first, first.isNumber { return short + " ago" }
+        return "on " + short
+    }
+
     /// "now", "4m", "3h", "2d", or "Oct 9" once it's more than a week old.
     static func short(from date: Date, to now: Date = Date(), calendar: Calendar = .current) -> String {
         let seconds = Int(now.timeIntervalSince(date))
