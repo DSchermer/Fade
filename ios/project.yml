@@ -17,15 +17,22 @@ targets:
       testTargets: [FadeTests]
     dependencies:
       - package: Supabase
-    # TURN ON once the paid Apple Developer account is active (a free Personal Team can't sign it):
+    # TURN ON once the paid Apple Developer account is active (a free Personal Team can't sign these).
+    # Uncomment, set DEVELOPMENT_TEAM below, then re-run `xcodegen`. Use `aps-environment: production` for App Store / TestFlight builds
+    # (Xcode switches it automatically when you archive).
     # entitlements:
     #   path: Fade/Fade.entitlements
     #   properties:
     #     com.apple.developer.applesignin: [Default]
+    #     aps-environment: development
+    #
+    # TURN ON to let invite links like  fade://join/ABCD1234  open the app (needs a hand-written Info.plist with the URL scheme;
+    # see docs/APPLE_ACCOUNT_STEPS.md "Invite links"). Leave off until then: the app builds fine without it.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade
         PRODUCT_NAME: Fade
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         DEVELOPMENT_TEAM: ""   # <- your 10-character Apple Team ID (see SETUP.md)
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
@@ -36,6 +43,8 @@ targets:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
         INFOPLIST_KEY_CFBundleDisplayName: Fade
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.sports
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO   # we only use standard HTTPS; skips the export-compliance question on every upload
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
         TARGETED_DEVICE_FAMILY: "1"
   FadeTests:

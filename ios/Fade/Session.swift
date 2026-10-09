@@ -49,7 +49,7 @@ final class Session {
 
     // MARK: Signing in and out
 
-    func signInWithApple(idToken: String, nonce: String) async {
+    func signInWithApple(idToken: String, nonce: String, authorizationCode: String? = nil) async {
         isBusy = true
         defer { isBusy = false }
         errorMessage = nil
@@ -57,10 +57,22 @@ final class Session {
             _ = try await supabase.auth.signInWithIdToken(
                 credentials: OpenIDConnectCredentials(provider: .apple, idToken: idToken, nonce: nonce)
             )
+            if AppConfig.appleRevocationEnabled, let authorizationCode {
+                await linkAppleAccount(code: authorizationCode)
+            }
             await loadProfile()
         } catch {
             errorMessage = "Sign in failed: \(Self.describe(error))"
             state = .signedOut
+        }
+    }
+
+    /// Gives Apple's one-time code to the server so it can disconnect this app from the person's Apple ID if they ever delete their account.
+    private func linkAppleAccount(code: String) async {
+        do {
+            try await supabase.functions.invoke("apple-link", options: FunctionInvokeOptions(body: ["authorizationCode": code]))
+        } catch {
+            // Not fatal for signing in; deleting the account will tell you if this matters.
         }
     }
 
@@ -88,7 +100,12 @@ final class Session {
     /// Deletes the account on the server, then signs out here. Returns an error message to show, or nil on success.
     func deleteAccount() async -> String? {
         do {
-            _ = try await supabase.rpc("delete_my_account").execute()
+            if AppConfig.appleRevocationEnabled {
+                // Tells Apple to disconnect Fade from this Apple ID, then runs the normal deletion on the server.
+                try await supabase.functions.invoke("apple-delete-account")
+            } else {
+                _ = try await supabase.rpc("delete_my_account").execute()
+            }
         } catch {
             return Self.describe(error)
         }
@@ -101,6 +118,7 @@ final class Session {
     }
 
     func signOut() async {
+        await PushManager.shared.unregisterCurrentToken()    // while still signed in, so the phone stops getting this account's pushes
         try? await supabase.auth.signOut()
         profile = nil
         errorMessage = nil

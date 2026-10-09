@@ -165,7 +165,7 @@ Username search → request → accept. Suggestions: people who share a group wi
 - **Leaving a group**: allowed only after your open offers are cancelled (automatic) and you have no unsettled bets in that group; your remaining balance is burned (`leave_burn`) and your net profit is added to lifetime totals. **Decided:** leaving is blocked while you have unsettled bets.
 - **Account deletion** (in app): cancels offers; voids unsettled bets (refunding opponents); burns remaining balances; anonymises: `profiles` row becomes "Deleted user", name/username/tokens/friendships/blocks removed, comments replaced with `[deleted]`; ledger and bets keep an anonymous user id so every group still balances.
 - **In-app legal text**: "Fade coins are free play money with no cash value. They can't be bought, sold, or redeemed." plus a problem-gambling help link (1-800-GAMBLER / ncpgambling.org). Shown at onboarding, in group creation, and in Settings.
-- **Age rating**: expect 17+ (simulated gambling). Privacy policy URL and privacy manifest are needed before TestFlight external testing. Full audit at the end per CLAUDE.md.
+- **Age rating**: expect the highest tier (17+/18+, simulated gambling); the app asks users to confirm they are 18 or older, which satisfies either. Privacy policy URL and privacy manifest are needed before TestFlight external testing. Full audit at the end per CLAUDE.md.
 - **Sign in with Apple**: we store Apple's user id and optional private-relay email only if you want it; none required. App Store requires deletion also revoking the Apple token (Edge Function; M11).
 - **Security**: RLS everywhere; secrets (APNs key, service role) only in Supabase; the app holds only the public anon key.
 

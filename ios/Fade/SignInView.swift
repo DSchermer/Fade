@@ -66,9 +66,9 @@ struct SignInView: View {
         .sheet(isPresented: $showLegal) { LegalView() }
     }
 
-    /// "By continuing you agree to the Terms of Use and Privacy Policy, and confirm you are 17 or older."
+    /// "By continuing you agree to the Terms of Use and Privacy Policy, and confirm you are 18 or older."
     private var agreement: AttributedString {
-        let text = "By continuing you confirm you are 17 or older and agree to the [Terms of Use](\(AppConfig.termsURL)) and [Privacy Policy](\(AppConfig.privacyURL))."
+        let text = "By continuing you confirm you are 18 or older and agree to the [Terms of Use](\(AppConfig.termsURL)) and [Privacy Policy](\(AppConfig.privacyURL))."
         return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
@@ -82,7 +82,8 @@ struct SignInView: View {
                 return
             }
             let nonce = rawNonce
-            Task { await session.signInWithApple(idToken: token, nonce: nonce) }
+            let code = credential.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+            Task { await session.signInWithApple(idToken: token, nonce: nonce, authorizationCode: code) }
         case .failure(let error):
             // Tapping "Cancel" is not an error worth showing.
             if (error as? ASAuthorizationError)?.code != .canceled {

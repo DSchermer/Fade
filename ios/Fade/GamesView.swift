@@ -35,7 +35,7 @@ struct GamesView: View {
                 ContentUnavailableView(
                     "No games right now",
                     systemImage: "sportscourt",
-                    description: Text(markets.errorMessage ?? "Upcoming games appear here. The schedule refreshes every 15 minutes.")
+                    description: Text(markets.errorMessage ?? "Upcoming games appear here and the schedule refreshes every 15 minutes. Leagues take breaks between seasons, so this can be empty for a while.")
                 )
             }
         }

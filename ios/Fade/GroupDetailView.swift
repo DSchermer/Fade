@@ -4,6 +4,7 @@ import UIKit
 struct GroupDetailView: View {
     @Environment(Session.self) private var session
     @Environment(GroupStore.self) private var groups
+    @Environment(FeedStore.self) private var feedStore
     @Environment(\.dismiss) private var dismiss
     let membership: GroupMembership   // as it was when this screen opened
 
@@ -13,6 +14,8 @@ struct GroupDetailView: View {
     @State private var memberToPromote: LeaderboardRow?
     @State private var actionError: String?
     @State private var openVotes: [VoteRow] = []
+    @State private var reportTarget: ReportTarget?
+    @State private var memberToBlock: LeaderboardRow?
 
     private var group: GroupInfo { membership.group }
     /// Always the latest balance (it changes whenever you post, take or cancel).
@@ -120,13 +123,26 @@ struct GroupDetailView: View {
                         if canHandOver(to: member) {
                             Button("Make owner", systemImage: "crown") { memberToPromote = member }
                         }
+                        if member.userId != session.profile?.id {
+                            Button("Report \(member.displayName)", systemImage: "flag") {
+                                reportTarget = ReportTarget(type: "user", id: member.userId, title: member.displayName)
+                            }
+                            Button("Mute \(member.displayName)", systemImage: "speaker.slash") {
+                                Task { actionError = await feedStore.mute(userID: member.userId) }
+                            }
+                            Button("Block \(member.displayName)", systemImage: "hand.raised.slash", role: .destructive) {
+                                memberToBlock = member
+                            }
+                        }
                     }
                 }
             } header: {
                 Text("Members (\(members.count))")
             } footer: {
                 if live.role == "owner" && members.count > 1 {
-                    Text("You're the owner. Swipe a member left (or long-press) to hand ownership to them.")
+                    Text("You're the owner. Swipe a member left to hand ownership to them. Touch and hold any member to report, mute or block them.")
+                } else {
+                    Text("Touch and hold a member to report, mute or block them.")
                 }
             }
 
@@ -170,6 +186,15 @@ struct GroupDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: { _ in
             Text("You'll become an ordinary member. Only one person can own a group.")
+        }
+        .sheet(item: $reportTarget) { target in ReportView(target: target) }
+        .confirmationDialog("Block \(memberToBlock?.displayName ?? "this person")?", isPresented: Binding(
+            get: { memberToBlock != nil }, set: { if !$0 { memberToBlock = nil } }
+        ), titleVisibility: .visible, presenting: memberToBlock) { member in
+            Button("Block", role: .destructive) { Task { actionError = await feedStore.block(userID: member.userId) } }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("You won't see each other's comments or feed activity, and you can't be friends. Bets in this group still work normally — to avoid someone's offers entirely, leave the group.")
         }
         .task {
             members = await groups.members(of: group.id)

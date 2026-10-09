@@ -9,6 +9,9 @@ import UserNotifications
 final class PushManager {
     static let shared = PushManager()
 
+    /// The token Apple gave this phone during this launch (kept in memory only), so sign-out can take it off the account.
+    private(set) var currentToken: String?
+
     /// Shows the iOS permission prompt (first time only), then registers for pushes.
     func requestPermissionAndRegister() async -> Bool {
         let center = UNUserNotificationCenter.current()
@@ -31,6 +34,7 @@ final class PushManager {
 
     /// Called with the token Apple gave this phone.
     func register(token: String) async {
+        currentToken = token
         #if DEBUG
         let environment = "sandbox"       // Xcode builds talk to Apple's test push servers
         #else
@@ -49,6 +53,13 @@ final class PushManager {
 
     func unregister(token: String) async {
         _ = try? await supabase.rpc("unregister_device_token", params: ["p_token": token]).execute()
+    }
+
+    /// Called on sign-out, while still signed in: this phone stops receiving this account's notifications.
+    func unregisterCurrentToken() async {
+        guard let token = currentToken else { return }
+        await unregister(token: token)
+        currentToken = nil
     }
 }
 
