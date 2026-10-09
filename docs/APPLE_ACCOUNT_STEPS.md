@@ -36,8 +36,8 @@ Keys are how our server proves to Apple who we are. Store the downloaded `.p8` f
 Supabase dashboard → **Authentication** → **Sign In / Providers** (or **Providers**) → **Apple** → enable it and set **Client IDs** to `com.dschermer.fade` → Save. (The app signs in natively, so no web "Services ID" or secret key is needed here.)
 
 ## 5. Switch the app over to your team
-1. In `ios/project.yml` set `DEVELOPMENT_TEAM: "AB12CD34EF"` (your Team ID).
-2. Uncomment the `entitlements:` block just under `dependencies:` (the one with `com.apple.developer.applesignin` and `aps-environment`). Keep `aps-environment: development`; Xcode switches it to production automatically when you archive for TestFlight.
+1. *(Already done for team `Z6T2AMNRBB`.)* `ios/project.yml` has `DEVELOPMENT_TEAM` set and the `entitlements:` block switched on (Sign in with Apple + push; `aps-environment: development` becomes production automatically when you archive for TestFlight).
+2. In Xcode: **Settings → Accounts** → make sure your Apple ID (the one with the paid account) is listed.
 3. In a terminal: `cd ios && xcodegen`, then open `Fade.xcodeproj` in Xcode. In **Signing & Capabilities** you should now see *Sign in with Apple* and *Push Notifications* with no red errors. Plug in your iPhone, pick it as the run target, press **Run**. (First time on a phone: iPhone Settings → Privacy & Security → Developer Mode → on.)
 
 ## 6. Deploy the three Edge Functions (Supabase servers)

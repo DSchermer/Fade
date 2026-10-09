@@ -17,14 +17,14 @@ targets:
       testTargets: [FadeTests]
     dependencies:
       - package: Supabase
-    # TURN ON once the paid Apple Developer account is active (a free Personal Team can't sign these).
-    # Uncomment, set DEVELOPMENT_TEAM below, then re-run `xcodegen`. Use `aps-environment: production` for App Store / TestFlight builds
-    # (Xcode switches it automatically when you archive).
-    # entitlements:
-    #   path: Fade/Fade.entitlements
-    #   properties:
-    #     com.apple.developer.applesignin: [Default]
-    #     aps-environment: development
+    # Sign in with Apple + push notifications (need the paid Apple Developer account; the App ID must have both capabilities ticked).
+    # `aps-environment: development` is switched to production automatically when you archive for TestFlight / the App Store.
+    # xcodegen creates Fade/Fade.entitlements from these lines (the file itself is not committed).
+    entitlements:
+      path: Fade/Fade.entitlements
+      properties:
+        com.apple.developer.applesignin: [Default]
+        aps-environment: development
     #
     # TURN ON to let invite links like  fade://join/ABCD1234  open the app (needs a hand-written Info.plist with the URL scheme;
     # see docs/APPLE_ACCOUNT_STEPS.md "Invite links"). Leave off until then: the app builds fine without it.
@@ -33,7 +33,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade
         PRODUCT_NAME: Fade
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        DEVELOPMENT_TEAM: ""   # <- your 10-character Apple Team ID (see SETUP.md)
+        DEVELOPMENT_TEAM: Z6T2AMNRBB   # Apple Team ID (not secret)
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
@@ -56,5 +56,6 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade.tests
+        DEVELOPMENT_TEAM: Z6T2AMNRBB
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "5.0"
