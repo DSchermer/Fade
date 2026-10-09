@@ -64,7 +64,10 @@ Deno.serve(async (req) => {
       }),
     });
     // Apple answers 200 even for tokens it no longer knows; any other answer means we should NOT delete yet.
-    if (!res.ok) return json({ error: "apple revoke failed", status: res.status }, 502);
+    if (!res.ok) {
+      console.error("apple revoke refused:", res.status, (await res.text().catch(() => "")).slice(0, 300));
+      return json({ error: "apple revoke failed", status: res.status }, 502);
+    }
   }
 
   // 2. Run the normal deletion as the signed-in person (it removes their data and then their sign-in account).

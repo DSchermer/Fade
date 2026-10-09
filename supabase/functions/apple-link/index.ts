@@ -63,7 +63,10 @@ Deno.serve(async (req) => {
     }),
   });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok || !body.refresh_token) return json({ error: "apple refused", detail: body.error ?? res.status }, 502);
+  if (!res.ok || !body.refresh_token) {
+    console.error("apple token exchange refused:", res.status, JSON.stringify({ error: body.error, description: body.error_description }));   // Apple's reason, never a secret
+    return json({ error: "apple refused", detail: body.error ?? res.status }, 502);
+  }
 
   const save = await fetch(`${SUPABASE_URL}/rest/v1/apple_tokens?on_conflict=user_id`, {
     method: "POST",
