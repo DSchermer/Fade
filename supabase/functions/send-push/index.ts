@@ -9,6 +9,7 @@ const KEY_ID = Deno.env.get("APNS_KEY_ID")!;
 const TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
 const PRIVATE_KEY = Deno.env.get("APNS_PRIVATE_KEY")!; // the whole .p8 file, including the BEGIN/END lines
 const BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID") ?? "com.dschermer.fade";
+const PUSH_SECRET = Deno.env.get("PUSH_SECRET");   // optional: our own shared secret for the database job
 
 const b64url = (data: ArrayBuffer | Uint8Array | string) => {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
@@ -33,8 +34,19 @@ async function apnsToken(): Promise<string> {
 }
 
 Deno.serve(async (req) => {
-  // Only the database job (holding the service-role key) may trigger sending.
-  if (req.headers.get("Authorization") !== `Bearer ${SERVICE_KEY}`) return new Response("forbidden", { status: 403 });
+  // Only the database job may trigger sending: it proves itself with the service-role key (Authorization header) or, if the
+  // project's injected key has a different format, with our own PUSH_SECRET (x-push-secret header).
+  const auth = req.headers.get("Authorization") ?? "";
+  const viaKey = auth === `Bearer ${SERVICE_KEY}`;
+  const viaSecret = !!PUSH_SECRET && req.headers.get("x-push-secret") === PUSH_SECRET;
+  if (!viaKey && !viaSecret) {
+    // TEMPORARY diagnostics (first 3 characters + length only, never the values) to find out why the keys differ.
+    return new Response(JSON.stringify({
+      error: "forbidden",
+      received: { starts: auth.slice(7, 10), length: Math.max(auth.length - 7, 0), push_secret_header: !!req.headers.get("x-push-secret") },
+      expected: { starts: (SERVICE_KEY ?? "").slice(0, 3), length: (SERVICE_KEY ?? "").length, push_secret_configured: !!PUSH_SECRET },
+    }), { status: 403, headers: { "content-type": "application/json" } });
+  }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
   const { data: rows, error } = await supabase.rpc("claim_notifications", { p_limit: 100 });
