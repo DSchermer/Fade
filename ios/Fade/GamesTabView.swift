@@ -70,7 +70,7 @@ struct GamesTabView: View {
                     header
                     if isSearching { searchField }
                     leagueBar
-                    if groups.memberships.isEmpty && !groups.isLoading {
+                    if groups.memberships.isEmpty && groups.hasLoaded {
                         noGroups
                     } else {
                         groupPicker

@@ -23,6 +23,25 @@ struct FeedHomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .overlay(alignment: .bottomTrailing) {
+                if !groups.memberships.isEmpty {
+                    Button {
+                        router.tab = .games
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(Theme.onAccent)
+                            .frame(width: 56, height: 56)
+                            .background(Theme.accent, in: Circle())
+                            .shadow(color: Color.black.opacity(0.35), radius: 10, y: 6)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 12)
+                    .accessibilityLabel("Make an offer")
+                    .accessibilityHint("Opens the Games tab to pick a game")
+                }
+            }
             .fadeTabBar()
         }
     }

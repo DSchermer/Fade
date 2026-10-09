@@ -35,7 +35,7 @@ struct GroupsTabView: View {
 
                     if let message = groups.errorMessage { ErrorLine(message).padding(.horizontal, 16) }
 
-                    if groups.memberships.isEmpty && !groups.isLoading {
+                    if groups.memberships.isEmpty && groups.hasLoaded {
                         EmptyStateCard(
                             systemImage: "person.2",
                             title: "Start your first group",
