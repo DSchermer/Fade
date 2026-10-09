@@ -13,4 +13,4 @@ for f in "$here"/../migrations/*.sql; do run -d "$db" < "$f" >/dev/null; done
 cd "$here"   # tests load fixtures by relative path
 for t in "$here"/*_test.sql; do run -o /dev/null -d "$db" < "$t"; done
 echo "All SQL tests passed."
-echo; "$here/concurrency_test.sh"
+if [ "${SKIP_CONCURRENCY:-0}" != 1 ]; then echo; "$here/concurrency_test.sh"; fi
