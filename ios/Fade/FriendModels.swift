@@ -16,7 +16,7 @@ struct FriendScore: Decodable, Identifiable {
     }
 
     var id: UUID { userId }
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }
 
 struct FriendRequest: Decodable, Identifiable {
@@ -32,7 +32,7 @@ struct FriendRequest: Decodable, Identifiable {
     }
 
     var id: String { "\(direction)-\(userId)" }
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }
 
 struct FriendSuggestion: Decodable, Identifiable {
@@ -47,5 +47,5 @@ struct FriendSuggestion: Decodable, Identifiable {
     }
 
     var id: UUID { userId }
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }

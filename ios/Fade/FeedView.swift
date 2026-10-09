@@ -304,7 +304,7 @@ struct BlockedUsersView: View {
             ForEach(rows) { row in
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("@\(row.username ?? "unknown")")
+                        Text("@\(row.username ?? "deleted user")")
                         Text(row.kind == "blocked" ? "Blocked" : "Muted").font(.caption).foregroundStyle(.secondary)
                     }
                     Spacer()

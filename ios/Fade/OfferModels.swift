@@ -68,7 +68,7 @@ struct OfferRow: Decodable, Identifiable, MarketDescribing {
         case eventTitle = "event_title"
     }
 
-    var makerName: String { "@" + (makerUsername ?? "unknown") }
+    var makerName: String { "@" + (makerUsername ?? "deleted user") }
     var backedSide: String { sideLabel(outcome) }
     var takerSide: String { sideLabel(1 - outcome) }
     var takerCents: Int { 100 - priceCents }
@@ -134,7 +134,7 @@ struct BetRow: Decodable, Identifiable, MarketDescribing {
     func mySide(_ me: UUID) -> String { sideLabel(iAmMaker(me) ? makerOutcome : 1 - makerOutcome) }
     func myStake(_ me: UUID) -> Int64 { iAmMaker(me) ? makerStake : takerStake }
     func theirStake(_ me: UUID) -> Int64 { iAmMaker(me) ? takerStake : makerStake }
-    func opponent(_ me: UUID) -> String { "@" + ((iAmMaker(me) ? takerUsername : makerUsername) ?? "unknown") }
+    func opponent(_ me: UUID) -> String { "@" + ((iAmMaker(me) ? takerUsername : makerUsername) ?? "deleted user") }
 
     /// true = I won, false = I lost, nil = not decided (pending or void).
     func iWon(_ me: UUID) -> Bool? {

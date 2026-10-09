@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct FadeApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var session = Session()
     @State private var groups = GroupStore()
     @State private var markets = MarketStore()

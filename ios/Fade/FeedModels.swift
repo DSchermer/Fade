@@ -124,7 +124,7 @@ struct CommentRow: Decodable, Identifiable {
         case createdAt = "created_at"
     }
 
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }
 
 struct BlockedUser: Decodable, Identifiable {

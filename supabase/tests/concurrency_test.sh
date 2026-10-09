@@ -234,6 +234,46 @@ ok=$(count race9 ok); late=$(count race9 vote_closed)
 healthy || { echo "FAIL: integrity broken after race 9"; exit 1; }
 echo "   ok: passed at exactly 5 yes of 9, the other 4 voters were told it had closed"
 
+uid2() { printf '20000000-0000-0000-0000-%012x' "$1"; }
+as_raw() { local u=$1; shift; q -c "select set_config('request.jwt.claim.sub', '$u', false); $*" 2>&1; }
+
+echo "10) an account is deleted at the exact moment someone takes its offer (8 rounds)…"
+bet_won=0; del_won=0
+for r in $(seq 1 8); do
+  D=$(uid2 $((2 * r))); T=$(uid2 $((2 * r + 1)))
+  q -c "insert into auth.users (id) values ('$D'), ('$T'); insert into profiles (id, username) values ('$D', 'deleter$r'), ('$T', 'taker$r');" >/dev/null
+  G=$(as_raw "$D" "select create_group('Del$r');" | tail -1)
+  CODE=$(q -c "select invite_code from groups where id = '$G'")
+  as_raw "$T" "select join_group('$CODE');" >/dev/null
+  O=$(as_raw "$D" "select post_offer('$G', '$MARKET2', 0, 50, 5);" | tail -1)
+  ( q -c "begin; select 1 from offers where id = '$O' for update; select pg_sleep(0.8); commit;" >/dev/null ) &
+  sleep 0.3
+  ( o=$(as_raw "$T" "select take_offer('$O', 5);") || true
+    if printf '%s\n' "$o" | grep -q '^ERROR'; then echo take_lost >> "$out/race10"; else echo take_won >> "$out/race10"; fi ) &
+  ( o=$(as_raw "$D" "select delete_my_account();") || true
+    if printf '%s\n' "$o" | grep -q '^ERROR'; then echo "delete_failed: $(printf '%s\n' "$o" | grep -m1 '^ERROR')" >> "$out/race10"; else echo delete_ok >> "$out/race10"; fi ) &
+  wait
+  [ "$(q -c "select (deleted_at is not null)::text from profiles where id = '$D'")" = true ] || { echo "FAIL (round $r): the account was not deleted"; cat "$out/race10"; exit 1; }
+  [ "$(q -c "select count(*) from auth.users where id = '$D'")" = 0 ] || { echo "FAIL (round $r): sign-in account still exists"; exit 1; }
+  [ "$(q -c "select available + escrow from group_members where group_id = '$G' and user_id = '$T'")" = 10000 ] || { echo "FAIL (round $r): the taker was not made whole"; exit 1; }
+  [ "$(q -c "select count(*) from bets where offer_id = '$O' and status = 'pending'")" = 0 ] || { echo "FAIL (round $r): a bet was left pending for a deleted account"; exit 1; }
+  [ "$(q -c "select count(*) from offers where id = '$O' and status = 'open'")" = 0 ] || { echo "FAIL (round $r): the deleted person's offer is still open"; exit 1; }
+  if [ "$(q -c "select count(*) from bets where offer_id = '$O'")" != 0 ]; then bet_won=$((bet_won + 1)); else del_won=$((del_won + 1)); fi
+done
+! grep -q delete_failed "$out/race10" || { echo "FAIL: a deletion errored:"; grep delete_failed "$out/race10" | head -2; exit 1; }
+healthy || { echo "FAIL: integrity broken after race 10"; q -c "select * from check_ledger_integrity() union all select * from check_betting_integrity()" | head; exit 1; }
+echo "   ok: the take got in first $bet_won times (then was voided and refunded), the deletion first $del_won times — taker always whole"
+
+echo "11) six delivery workers claim the push queue at the same moment…"
+q -c "insert into auth.users (id) values ('$(uid2 900)'); insert into profiles (id, username) values ('$(uid2 900)', 'pushuser'); insert into device_tokens (user_id, token) values ('$(uid2 900)', repeat('9', 64));
+      insert into notification_outbox (user_id, kind, title, body) select '$(uid2 900)', 'new_offer', 'x' || i, 'y' from generate_series(1, 60) i;" >/dev/null
+for k in $(seq 1 6); do ( q -c "select count(*) from claim_notifications(100);" >> "$out/claim11" 2>&1 ) & done
+wait
+claimed=$(awk '{s += $1} END {print s + 0}' "$out/claim11")
+[ "$claimed" = 60 ] || { echo "FAIL: 60 messages were queued but $claimed were handed out in total"; tr '\n' ' ' < "$out/claim11"; exit 1; }
+[ "$(q -c "select count(*) from notification_outbox where attempts = 1")" = 60 ] || { echo "FAIL: some message was claimed twice"; exit 1; }
+echo "   ok: all 60 handed out exactly once between 6 workers"
+
 total=$(q -c "select sum(available + escrow) from group_members where group_id = '$GROUP'")
 expected=$(q -c "select sum(delta) from ledger where group_id = '$GROUP' and kind in ('grant', 'buyback', 'season_burn', 'leave_burn', 'delete_burn')")
 [ "$total" = "$expected" ] || { echo "FAIL: coins created or destroyed ($total vs $expected)"; exit 1; }

@@ -15,6 +15,7 @@ struct Profile: Codable, Identifiable {
     var priceFormat: PriceFormat
     var lifetimeWins: Int
     var lifetimeLosses: Int
+    var deletedAt: Date?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -22,5 +23,6 @@ struct Profile: Codable, Identifiable {
         case priceFormat = "price_format"
         case lifetimeWins = "lifetime_wins"
         case lifetimeLosses = "lifetime_losses"
+        case deletedAt = "deleted_at"
     }
 }

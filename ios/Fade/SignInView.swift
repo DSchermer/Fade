@@ -52,12 +52,24 @@ struct SignInView: View {
             debugLogin
             #endif
 
+            Text(agreement)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .tint(.secondary)
+
             NoMoneyNotice()
             Button("About Fade coins & help resources") { showLegal = true }
                 .font(.footnote)
         }
         .padding()
         .sheet(isPresented: $showLegal) { LegalView() }
+    }
+
+    /// "By continuing you agree to the Terms of Use and Privacy Policy, and confirm you are 17 or older."
+    private var agreement: AttributedString {
+        let text = "By continuing you confirm you are 17 or older and agree to the [Terms of Use](\(AppConfig.termsURL)) and [Privacy Policy](\(AppConfig.privacyURL))."
+        return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
     private func handle(_ result: Result<ASAuthorization, Error>) {

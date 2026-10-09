@@ -41,7 +41,7 @@ struct VoteRow: Decodable, Identifiable {
     var isOpen: Bool { status == "open" }
 
     var title: String {
-        kind == "reset" ? "Reset the group" : "Buyback for @\(subjectUsername ?? "unknown")"
+        kind == "reset" ? "Reset the group" : "Buyback for @\(subjectUsername ?? "deleted user")"
     }
 
     /// Same rule as the server: min(members, max(2, ceil(25% of members))).
@@ -85,5 +85,5 @@ struct SeasonStandingRow: Decodable, Identifiable {
     }
 
     var id: String { "\(seasonId)-\(userId)" }
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }

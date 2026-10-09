@@ -85,6 +85,21 @@ final class Session {
     }
     #endif
 
+    /// Deletes the account on the server, then signs out here. Returns an error message to show, or nil on success.
+    func deleteAccount() async -> String? {
+        do {
+            _ = try await supabase.rpc("delete_my_account").execute()
+        } catch {
+            return Self.describe(error)
+        }
+        // The sign-in account no longer exists on the server, so signing out may complain; the local login is cleared either way.
+        try? await supabase.auth.signOut(scope: .local)
+        profile = nil
+        errorMessage = nil
+        state = .signedOut
+        return nil
+    }
+
     func signOut() async {
         try? await supabase.auth.signOut()
         profile = nil
@@ -139,6 +154,12 @@ final class Session {
                 .eq("id", value: userID)
                 .execute()
                 .value
+            if rows.first?.deletedAt != nil {          // a leftover login for an account that was deleted
+                try? await supabase.auth.signOut(scope: .local)
+                profile = nil
+                state = .signedOut
+                return
+            }
             profile = rows.first
             state = (rows.first?.username == nil) ? .needsUsername : .ready
         } catch {
@@ -189,6 +210,8 @@ final class Session {
             ("already_friends", "You're already friends."),
             ("too_many_requests", "You have too many requests waiting. Cancel a few first."),
             ("request_not_found", "That request isn't there any more."),
+            ("invalid_token", "That notification setting couldn't be saved."),
+            ("invalid_pref", "That notification setting couldn't be saved."),
             ("content_not_allowed", "That text isn't allowed in Fade. Please rephrase it."),
             ("invalid_comment", "Comments must be 1–500 characters."),
             ("slow_down", "You're commenting too fast. Wait a minute and try again."),

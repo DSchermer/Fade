@@ -24,7 +24,7 @@ struct LeaderboardRow: Decodable, Identifiable {
     }
 
     var id: UUID { userId }
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }
 
 /// A recorded buyback, visible to the whole group.
@@ -44,7 +44,7 @@ struct BuybackRow: Decodable, Identifiable {
         case createdAt = "created_at"
     }
 
-    var displayName: String { "@" + (username ?? "unknown") }
+    var displayName: String { "@" + (username ?? "deleted user") }
 }
 
 /// Whether I can buy back into a group right now, and why not if I can't.

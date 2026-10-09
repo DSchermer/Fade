@@ -117,14 +117,14 @@ private struct VoteCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(vote.title).font(.headline)
-            Text("Called by @\(vote.calledByUsername ?? "unknown") · closes \(vote.closesAt.formatted(date: .abbreviated, time: .shortened))")
+            Text("Called by @\(vote.calledByUsername ?? "deleted user") · closes \(vote.closesAt.formatted(date: .abbreviated, time: .shortened))")
                 .font(.footnote).foregroundStyle(.secondary)
 
             if vote.kind == "reset" {
                 Text("If this passes: open offers are cancelled, ALL unsettled bets are voided and refunded, everyone returns to \(Coins.format(startingBalance)) coins, buyback counts clear and a new season starts. Everyone keeps this season's profit or loss in their lifetime score.")
                     .font(.footnote).foregroundStyle(.orange)
             } else {
-                Text("If this passes, @\(vote.subjectUsername ?? "unknown") gets the group's buyback amount.")
+                Text("If this passes, @\(vote.subjectUsername ?? "deleted user") gets the group's buyback amount.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
 

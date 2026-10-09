@@ -65,6 +65,7 @@ struct HomeView: View {
             .refreshable { await reload() }
             .task(id: session.profile?.id) {
                 await reload()
+                await PushManager.shared.registerIfAuthorized()
                 if session.pendingJoinCode != nil { showJoin = true }
             }
             .sheet(isPresented: $showSettings) { SettingsView() }

@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(GroupStore.self) private var groups
     @Environment(\.dismiss) private var dismiss
     @State private var showLegal = false
+    @State private var showDelete = false
     @State private var score: MyScore?
 
     var body: some View {
@@ -38,8 +39,12 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink("Notifications") { NotificationSettingsView() }
                     NavigationLink("Blocked & muted people") { BlockedUsersView() }
                     Button("About coins & help") { showLegal = true }
+                    if let url = URL(string: AppConfig.privacyURL) { Link("Privacy policy", destination: url) }
+                    if let url = URL(string: AppConfig.termsURL) { Link("Terms of use", destination: url) }
+                    if let url = URL(string: AppConfig.supportURL) { Link("Help & support", destination: url) }
                     Button("Sign out", role: .destructive) {
                         Task {
                             groups.clear()
@@ -47,6 +52,12 @@ struct SettingsView: View {
                             dismiss()
                         }
                     }
+                }
+
+                Section {
+                    Button("Delete my account…", role: .destructive) { showDelete = true }
+                } footer: {
+                    Text("Permanently removes your account and personal information. Coins have no cash value and can't be recovered.")
                 }
             }
             .navigationTitle("Settings")
@@ -59,6 +70,7 @@ struct SettingsView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
             .sheet(isPresented: $showLegal) { LegalView() }
+            .sheet(isPresented: $showDelete) { DeleteAccountView() }
         }
     }
 

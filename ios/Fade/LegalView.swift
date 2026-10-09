@@ -30,6 +30,11 @@ struct LegalView: View {
                         Link("Call 1-800-GAMBLER", destination: url)
                     }
                 }
+                Section("Fade") {
+                    if let url = URL(string: AppConfig.termsURL) { Link("Terms of use", destination: url) }
+                    if let url = URL(string: AppConfig.privacyURL) { Link("Privacy policy", destination: url) }
+                    if let url = URL(string: AppConfig.supportURL) { Link("Help & support", destination: url) }
+                }
             }
             .navigationTitle("About & Help")
             .navigationBarTitleDisplayMode(.inline)
