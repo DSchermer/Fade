@@ -12,6 +12,7 @@ struct GroupDetailView: View {
     @State private var showLeaveConfirm = false
     @State private var memberToPromote: LeaderboardRow?
     @State private var actionError: String?
+    @State private var openVotes: [VoteRow] = []
 
     private var group: GroupInfo { membership.group }
     /// Always the latest balance (it changes whenever you post, take or cancel).
@@ -19,6 +20,21 @@ struct GroupDetailView: View {
 
     var body: some View {
         List {
+            if let reset = openVotes.first(where: { $0.kind == "reset" }) {
+                Section {
+                    NavigationLink {
+                        VotesView(group: group)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Reset vote in progress", systemImage: "exclamationmark.triangle.fill")
+                                .font(.headline).foregroundStyle(.orange)
+                            Text("If it passes, ALL unsettled bets will be voided and refunded. Yes \(reset.yesCount), no \(reset.noCount) of \(reset.electorate). Closes \(reset.closesAt.formatted(date: .abbreviated, time: .shortened)).")
+                                .font(.footnote)
+                        }
+                    }
+                }
+            }
+
             Section("Your balance") {
                 LabeledContent("Total", value: "\(Coins.format(live.balance)) coins")
                 LabeledContent("Available to bet", value: "\(Coins.format(live.available)) coins")
@@ -69,6 +85,11 @@ struct GroupDetailView: View {
                     LeaderboardView(groupID: group.id, startingBalance: group.startingBalance)
                 } label: {
                     Label("Leaderboard", systemImage: "list.number")
+                }
+                NavigationLink {
+                    VotesView(group: group)
+                } label: {
+                    Label(openVotes.isEmpty ? "Votes & seasons" : "Votes & seasons (\(openVotes.count) open)", systemImage: "hand.raised")
                 }
             }
 
@@ -142,8 +163,14 @@ struct GroupDetailView: View {
         } message: { _ in
             Text("You'll become an ordinary member. Only one person can own a group.")
         }
-        .task { members = await groups.members(of: group.id) }
-        .refreshable { members = await groups.members(of: group.id) }
+        .task {
+            members = await groups.members(of: group.id)
+            openVotes = await groups.votes(groupID: group.id).filter(\.isOpen)
+        }
+        .refreshable {
+            members = await groups.members(of: group.id)
+            openVotes = await groups.votes(groupID: group.id).filter(\.isOpen)
+        }
     }
 
     // MARK: Leaving and ownership

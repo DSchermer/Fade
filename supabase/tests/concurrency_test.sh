@@ -42,7 +42,7 @@ take() { # take <user#> <offer> <shares> <label>
 }
 export -f take q uid; export db out pg_str="" 
 count() { grep -c "^$2\$" "$out/$1" 2>/dev/null || true; }
-healthy() { [ -z "$(q -c "select 1 from check_ledger_integrity() union all select 1 from check_betting_integrity()")" ]; }
+healthy() { [ -z "$(q -c "select 1 from check_ledger_integrity() union all select 1 from check_betting_integrity() union all select 1 from check_season_integrity()")" ]; }
 
 echo "1) 60 people race for 50 shares…"
 OFFER1=$(q -c "select set_config('request.jwt.claim.sub', '$MAKER', false); select post_offer('$GROUP', '$MARKET', 0, 50, 50);" | tail -1)
@@ -156,6 +156,83 @@ for r in $(seq 1 12); do
 done
 healthy || { echo "FAIL: integrity broken after race 6"; q -c "select * from check_ledger_integrity() union all select * from check_betting_integrity()" | head; exit 1; }
 echo "   ok: the leaver won $left_won rounds, the taker won $take_won — never both, books balanced"
+
+newgroup() { # newgroup <owner#> <member#...>  → prints the new group's id
+  local owner=$1; shift
+  local g code
+  g=$(q -c "select set_config('request.jwt.claim.sub', '$(uid "$owner")', false); select create_group('G$RANDOM');" | tail -1)
+  code=$(q -c "select invite_code from groups where id = '$g'")
+  for m in "$@"; do q -c "select set_config('request.jwt.claim.sub', '$(uid "$m")', false); select join_group('$code');" >/dev/null; done
+  echo "$g"
+}
+as() { local u=$1; shift; q -c "select set_config('request.jwt.claim.sub', '$(uid "$u")', false); $*" 2>&1; }
+
+echo "7) a group reset lands at the exact moment its bets are being settled (8 rounds)…"
+mapfile -t MKTS < <(q -c "select id from markets where market_type in ('totals', 'spreads') and id <> '$MARKET2' and not closed order by id limit 8")
+settled_first=0; voided_first=0
+for r in $(seq 1 8); do
+  base=$((30 + 3 * (r - 1))); M="${MKTS[$((r - 1))]}"
+  G=$(newgroup "$base" $((base + 1)) $((base + 2)))
+  OFF=$(as "$base" "select post_offer('$G', '$M', 0, 50, 10);" | tail -1)
+  as $((base + 1)) "select take_offer('$OFF', 10);" >/dev/null
+  as "$base" "select call_vote('$G', 'reset');" >/dev/null
+  q -c "update markets set closed = true, uma_status = 'resolved', outcome_prices = '{1,0}', resolution = 'outcome_0' where id = '$M'" >/dev/null
+  ( q -c "begin; select 1 from group_members where group_id = '$G' and user_id = '$(uid $((base + 1)))' for update; select pg_sleep(0.8); commit;" >/dev/null ) &
+  sleep 0.3
+  ( as $((base + 1)) "select cast_vote((select id from votes where group_id = '$G' and status = 'open'), true);" > "$out/r7a_$r" ) &
+  ( q -c "select settle_resolved_markets();" > "$out/r7b_$r" 2>&1 ) &
+  wait
+  st=$(q -c "select status from bets where offer_id = '$OFF'")
+  seasons=$(q -c "select count(*) from seasons where group_id = '$G'")
+  full=$(q -c "select count(*) from group_members where group_id = '$G' and available = 10000 and escrow = 0 and granted = 10000")
+  [ "$seasons" = 2 ] && [ "$full" = 3 ] || { echo "FAIL (round $r): reset did not complete cleanly (seasons=$seasons, members at 100 coins=$full)"; cat "$out/r7a_$r"; exit 1; }
+  case "$st" in
+    won_maker) settled_first=$((settled_first + 1));;
+    void)      voided_first=$((voided_first + 1));;
+    *) echo "FAIL (round $r): the bet ended up '$st' — it must be settled or voided, never left pending or paid twice"; exit 1;;
+  esac
+  want=1; [ "$st" = void ] && want=2        # a win pays the winner once; a void refunds both sides
+  [ "$(q -c "select count(*) from ledger where ref_type = 'bet' and ref_id = (select id from bets where offer_id = '$OFF') and kind in ('bet_payout', 'bet_void') and bucket = 'available'")" = "$want" ] \
+    || { echo "FAIL (round $r): the bet ($st) was paid out the wrong number of times"; exit 1; }
+done
+healthy || { echo "FAIL: integrity broken after race 7"; q -c "select * from check_ledger_integrity() union all select * from check_betting_integrity() union all select * from check_season_integrity()" | head; exit 1; }
+echo "   ok: settle came first $settled_first times, the reset's void came first $voided_first times — never both, never neither"
+
+echo "8) eight connections close the same expired vote at the same moment…"
+G8=$(newgroup 54 55 56 57)
+as 54 "select call_vote('$G8', 'reset');" >/dev/null
+as 55 "select cast_vote((select id from votes where group_id = '$G8' and status = 'open'), true);" >/dev/null
+q -c "update votes set closes_at = '2026-10-08 11:00+00' where group_id = '$G8'" >/dev/null
+( q -c "begin; select 1 from votes where group_id = '$G8' for update; select pg_sleep(0.8); commit;" >/dev/null ) &
+sleep 0.3
+for k in $(seq 1 8); do ( q -c "select close_votes();" >> "$out/close8" 2>&1 ) & done
+wait
+closed=$(awk '{s += $1} END {print s + 0}' "$out/close8")
+[ "$closed" = 1 ] || { echo "FAIL: expected exactly 1 close across the callers, got $closed"; cat "$out/close8" | tr '\n' ' '; exit 1; }
+[ "$(q -c "select count(*) from seasons where group_id = '$G8'")" = 2 ] || { echo "FAIL: group reset more than once"; exit 1; }
+[ "$(q -c "select count(*) from ledger where group_id = '$G8' and ref_type = 'season' and kind = 'grant'")" = 4 ] || { echo "FAIL: members were re-granted more than once"; exit 1; }
+[ "$(q -c "select count(*) from sync_log where kind = 'close_vote'")" = 0 ] || { echo "FAIL: some callers errored instead of cleanly skipping an already-closed vote"; q -c "select detail from sync_log where kind = 'close_vote'" | head -3; exit 1; }
+healthy || { echo "FAIL: integrity broken after race 8"; exit 1; }
+echo "   ok: reset exactly once, 4 members re-granted exactly once each"
+
+echo "9) eight members vote at the same moment…"
+G9=$(newgroup 58 59 60 61 62 20 21 22 23)
+as 58 "select call_vote('$G9', 'reset');" >/dev/null
+VID=$(q -c "select id from votes where group_id = '$G9' and status = 'open'")
+( q -c "begin; select 1 from votes where id = '$VID' for update; select pg_sleep(0.8); commit;" >/dev/null ) &
+sleep 0.3
+for u in 59 60 61 62 20 21 22 23; do
+  ( o=$(as "$u" "select cast_vote('$VID', true);") || true
+    m=$(printf '%s\n' "$o" | grep -m1 '^ERROR' || true)
+    if [ -n "$m" ]; then echo "${m#*ERROR:  }" >> "$out/race9"; else echo ok >> "$out/race9"; fi ) &
+done
+wait
+ok=$(count race9 ok); late=$(count race9 vote_closed)
+[ "$ok" = 4 ] && [ "$late" = 4 ] || { echo "FAIL: expected 4 votes counted + 4 'vote_closed', got $ok / $late"; sort "$out/race9" | uniq -c; exit 1; }
+[ "$(q -c "select status || ' ' || yes_count from votes where id = '$VID'")" = "passed 5" ] || { echo "FAIL: the vote should have passed at exactly 5 yes"; q -c "select status, yes_count, no_count from votes where id = '$VID'"; exit 1; }
+[ "$(q -c "select count(*) from seasons where group_id = '$G9'")" = 2 ] || { echo "FAIL: reset count wrong"; exit 1; }
+healthy || { echo "FAIL: integrity broken after race 9"; exit 1; }
+echo "   ok: passed at exactly 5 yes of 9, the other 4 voters were told it had closed"
 
 total=$(q -c "select sum(available + escrow) from group_members where group_id = '$GROUP'")
 expected=$(q -c "select sum(delta) from ledger where group_id = '$GROUP' and kind in ('grant', 'buyback', 'season_burn', 'leave_burn', 'delete_burn')")

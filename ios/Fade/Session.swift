@@ -171,6 +171,12 @@ final class Session {
             ("target_not_member", "That person isn't an active member of this group."),
             ("buyback_requires_vote", "This group uses buyback votes (coming in a later update)."),
             ("buyback_limit_reached", "You've used this week's buybacks."),
+            ("vote_already_open", "A vote like that is already open — go vote on it."),
+            ("vote_closed", "That vote has closed."),
+            ("vote_not_found", "That vote isn't available."),
+            ("invalid_vote_kind", "Pick a kind of vote."),
+            ("invalid_ballot", "Pick yes or no."),
+            ("buyback_vote_not_allowed", "This group doesn't use buyback votes."),
             ("not_busted", "You can only buy back in when you have no coins left (including coins in bets and offers)."),
         ]
         for (code, message) in known where raw.contains(code) { return message }

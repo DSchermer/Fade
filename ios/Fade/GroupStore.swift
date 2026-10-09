@@ -174,4 +174,76 @@ final class GroupStore {
             return Session.describe(error)
         }
     }
+
+    // MARK: Votes and seasons
+
+    func votes(groupID: UUID) async -> [VoteRow] {
+        do {
+            let rows: [VoteRow] = try await supabase.from("vote_listing").select()
+                .eq("group_id", value: groupID)
+                .order("created_at", ascending: false)
+                .limit(50)
+                .execute()
+                .value
+            return rows
+        } catch {
+            errorMessage = "Couldn't load votes: \(Session.describe(error))"
+            return []
+        }
+    }
+
+    private struct CallVoteParams: Encodable {
+        let group: UUID
+        let kind: String
+
+        enum CodingKeys: String, CodingKey {
+            case group = "p_group"
+            case kind = "p_kind"
+        }
+    }
+
+    /// kind: "reset" or "buyback". Returns an error message to show, or nil on success.
+    func callVote(groupID: UUID, kind: String, userID: UUID) async -> String? {
+        do {
+            _ = try await supabase.rpc("call_vote", params: CallVoteParams(group: groupID, kind: kind)).execute()
+            await load(userID: userID)
+            return nil
+        } catch {
+            return Session.describe(error)
+        }
+    }
+
+    private struct CastParams: Encodable {
+        let vote: UUID
+        let yes: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case vote = "p_vote"
+            case yes = "p_yes"
+        }
+    }
+
+    func castVote(voteID: UUID, yes: Bool, userID: UUID) async -> String? {
+        do {
+            _ = try await supabase.rpc("cast_vote", params: CastParams(vote: voteID, yes: yes)).execute()
+            await load(userID: userID)          // a passed reset changes everyone's balance
+            return nil
+        } catch {
+            return Session.describe(error)
+        }
+    }
+
+    func seasonHistory(groupID: UUID) async -> [SeasonStandingRow] {
+        do {
+            let rows: [SeasonStandingRow] = try await supabase.from("season_history").select()
+                .eq("group_id", value: groupID)
+                .order("number", ascending: false)
+                .execute()
+                .value
+            return rows
+        } catch {
+            errorMessage = "Couldn't load past seasons: \(Session.describe(error))"
+            return []
+        }
+    }
 }

@@ -32,8 +32,11 @@ struct BuybackSection: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else if status.reason == "needs_vote" {
-                        Text("This group lets members vote on buybacks. Voting arrives in a later update.")
+                        Text("This group decides buybacks by vote. Ask the group — members have 24 hours to vote, and you can follow it under Votes & seasons.")
                             .foregroundStyle(.secondary)
+                        Button("Ask the group for a buyback") { Task { await askForVote() } }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(isWorking)
                     }
 
                     if let errorMessage {
@@ -51,6 +54,14 @@ struct BuybackSection: View {
         } message: {
             Text("Everyone in the group can see it, and the coins count against your net profit.")
         }
+    }
+
+    private func askForVote() async {
+        guard let userID = session.profile?.id else { return }
+        isWorking = true
+        defer { isWorking = false }
+        errorMessage = await groups.callVote(groupID: groupID, kind: "buyback", userID: userID)
+        if errorMessage == nil { errorMessage = "Vote called — members can vote now." }
     }
 
     private func claim() async {
