@@ -1,93 +1,54 @@
 # Fade — testing plan for Milestones 8–13
 
-Written on 2026‑10‑09 while you were away. **Everything is built.** This file is your checklist for tomorrow: what to run, what to tap, and what you should see. Budget about **2½ hours** for everything, or **45 minutes** for just the "must do" parts (marked ⭐).
-
-Your starting point: migrations **0001–0008 are already applied** (you ran `leave_group` last). Everything after that is new and has **not** been run on your Supabase yet.
+**Updated 2026‑10‑09 evening.** Everything is built, the migrations are in, the app runs on your Mac's simulator and on your iPhone, and the Apple-account features are proven (§12). What's left is **you tapping through the app** (§2–§8) plus a few Apple chores. Budget about **2 hours** for everything, or **45 minutes** for just the "must do" parts (marked ⭐).
 
 ---
 
 ## 0. How to use this file
 
 - Work top to bottom. Each part has checkboxes. If a step doesn't match what's written, **stop, screenshot it, and tell me the step number** (for example "E5 failed: …").
-- "A, B, C, D" are four test accounts (see §2.5). Use one simulator and switch accounts with Settings → Sign out, or run two simulators side by side (Xcode → Product → Destination).
+- "A, B, C, D" are four test accounts (see §1.3). Use one simulator and switch accounts with Settings → Sign out, or run two simulators side by side (Xcode → Product → Destination).
 - **Pull down on any list to refresh it.** Nothing updates live in v1 by design.
 - Don't run any migration twice. If one errors partway, don't re-run it; send me the error text.
+- The Sign in with Apple button is **not** how you switch test accounts. Use the orange **Debug only** box on the sign-in screen (email + password; it creates the account if it doesn't exist). That box exists only in builds you run from Xcode, never in TestFlight/App Store builds.
 
-### What I already tested (automatically, on a scratch database — not on your Supabase)
-All the money rules, votes, resets, the feed, reports/blocks, friends, notification queue, account deletion and the new permission lockdown are covered by **~20 SQL test files plus 11 "everybody at once" race tests** (settle twice, vote at once, leave while someone takes your offer, delete an account while someone takes its offer, …). Every test passed on the last full run, and I broke the code on purpose in about 30 places to check the tests notice (they did, after I fixed gaps in two). 
+### What has been checked for you
+- **Server side:** about 20 SQL test files plus 11 "everybody at once" race tests (settle twice, vote at once, leave while someone takes your offer, delete an account while someone takes its offer, …), a permission audit, and tests of the three Edge Functions against pretend servers. I broke the code on purpose in about 30 places to confirm the tests notice.
+- **App ↔ server data:** a contract test decodes what the database returns with the app's own model types (23 checks pass).
+- **Real devices:** the app compiles and runs; Sign in with Apple, push delivery, and deletion + Apple disconnect work on your iPhone (§12).
 
-### What I could NOT test
-- **The SwiftUI screens.** There is no Xcode in my environment, so the M8–M12 *screens* (the files ending in `View.swift`, plus `PushManager.swift`) have never been compiled. **Expect a few red errors on your first build.** Copy them to me exactly. This is normal and usually quick to fix.
-  - What I *could* do: I installed a Swift compiler on my side and (a) compiled all the non-screen Swift (stores, models, `Session`) against the real Supabase library with no errors, (b) ran your unit tests (7 pass), (c) syntax-checked every Swift file, and (d) built a "contract test" (`supabase/tests/contract/run.sh`): it fills a scratch database through the real server functions, saves the JSON each screen would receive, and decodes it with the app's own model types. All 23 decodes pass for the situations in that test database (settled, voided and pending bets, buybacks, votes, friends, comments, …), which catches renamed columns, wrong types and unexpected nulls. I also had an independent reviewer read every screen against the real store/model declarations: it found two likely compile errors (a `Section` with a title and footer in `FeedView`, and a sign-in screen with more than 10 items in one stack) and one bug where the buyback box on the group screen might never load. All three are fixed, but nothing has been compiled on a Mac yet.
-- Anything that needs the **paid Apple account** (see §10).
+### What has NOT been checked: the screens themselves
+Nobody (you or me) has tapped through the votes, feed, friends, buyback and leave/ownership screens yet, and the money flows haven't been tapped on the real connection. That is what §2–§8 are for. A reviewer reading the code already found one screen bug the tests couldn't see (the "You're out of coins" box on the group screen), so expect a few more small ones.
 
 ---
 
-## 1. Before you start: the 10‑minute setup ⭐
+## 1. Setup — status ✅ (kept for reference)
 
-### 1.1 Get the code
-```
-cd ~/path/to/Fade && git pull
-```
-(You're on branch `claude/great-goldberg-z1ihhv`; that's where all the work is.)
-
-### 1.2 Run the new migrations, in this order ⭐
-For each one: `pbcopy < supabase/migrations/FILE` (from the repo root; from `ios/` use `../supabase/...`) → Supabase dashboard → SQL Editor → **New query** → paste → **Run** → wait for "Success".
-
-| Order | File | What it adds | Quick check afterwards |
-|---|---|---|---|
-| 1 | `20261008000009_votes.sql` | Reset + buyback votes, season history | `select * from check_season_integrity();` → **no rows** |
-| 2 | `20261008000010_feed_moderation.sql` | Feed, reactions, comments, word filter, reports, blocks/mutes, your moderation tools | `select count(*) from banned_terms;` → about 28 |
-| 3 | `20261008000011_friends.sql` | Friends | `select count(*) from friendships;` → 0 |
-| 4 | `20261008000012_notifications_deletion.sql` | Notification queue + preferences, in‑app account deletion | `select count(*) from notification_outbox;` → 0 |
-| 5 | `20261008000013_apple_tokens.sql` | Table the Apple‑revocation feature will use later | `select count(*) from apple_tokens;` → 0 |
-| 6 | `20261008000014_lockdown.sql` | Security hardening (explained in §9) | see below |
-
-After all six, run these three; **each must return no rows**:
-```sql
-select * from check_ledger_integrity();
-select * from check_betting_integrity();
-select * from check_season_integrity();
-```
-Check the lockdown took effect (should return **no rows**):
-```sql
-select c.relname from pg_class c
- where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','v')
-   and has_table_privilege('anon', c.oid, 'select');
-```
-- [ ] 1–6 ran with "Success"
-- [ ] three integrity checks: no rows
-- [ ] anon check: no rows
-
-### 1.3 Schedule the vote closer ⭐
-`pbcopy < supabase/ops/schedule_votes.sql` → new query → paste → Run (prints a job number). Then:
+### 1.1 Code, migrations and jobs ✅
+- Migrations **0009–0014 are all applied** (0013 was applied last). The three integrity checks returned no rows, the lockdown check passed, and `apple_tokens` is private.
+- Scheduled jobs: auto-cancel, settle, vote closer, two market syncs, and the **push sender** (`fade-send-push`). To re-check any time:
 ```sql
 select jobname, schedule, active from cron.job order by jobname;
 ```
-You should see **fade-auto-cancel, fade-close-votes, fade-refresh-markets, fade-settle, fade-sync-markets** (all `active = true`). (`fade-send-push` comes later, with the paid account.)
+  You should see **six** active jobs: `fade-auto-cancel`, `fade-close-votes`, `fade-refresh-markets`, `fade-send-push`, `fade-settle`, `fade-sync-markets`.
 
-- [ ] five jobs listed
+### 1.2 Build and run
+- **Simulator:** `git pull`, then `cd ios && xcodegen`, open `Fade.xcodeproj`, pick a simulator, press ▶.
+- **Your iPhone:** plug it in, pick it in the device list, press ▶ (Developer Mode must be on; codesign may ask for your Mac password: Always Allow).
+- If the app shows **"permission denied for table …"** anywhere, tell me the table name. Immediate fix: `grant select on public.TABLENAME to authenticated;` in the SQL editor.
 
-### 1.4 Build the app ⭐
-```
-cd ios && xcodegen
-```
-Open `Fade.xcodeproj` → pick a simulator → **Run**.
-- [ ] it builds. **If not:** copy the red error messages (file name, line number, text) and send them to me. Don't try to fix them.
-- [ ] the app opens on the sign‑in screen, which now says "By continuing you confirm you are **18 or older**…"
-
-If the app later shows **"permission denied for table …"** anywhere, that's me having locked down something the app reads. Tell me the table name, and as an immediate fix run `grant select on public.TABLENAME to authenticated;` in the SQL editor.
-
-### 1.5 The four test accounts ⭐
-On the sign‑in screen use the orange **Debug only** box (email + password creates the account if it doesn't exist).
+### 1.3 The four test accounts ⭐
+Use the orange **Debug only** box on the sign‑in screen.
 - **A** = your existing owner account (the one you usually test with)
 - **B** = your second existing account
-- **C** and **D** = new: for example `qa3@example.com` and `qa4@example.com` with any password of 6+ characters; pick usernames like `qa3`, `qa4` when asked.
+- **C** and **D** = new, for example `qa3@example.com` and `qa4@example.com` with any 6+ character password; pick usernames like `qa3`, `qa4` when asked.
+
+(The Apple-signed-in account you used on the phone was deleted during the deletion test. Signing in with Apple again creates a fresh empty account; it's separate from A–D.)
 
 Create a fresh group **"Fade QA"** as A (defaults: 100 coins, unlimited buybacks). Join B, C, D with the invite code (+ → Join with a code). Everyone starts with 100.
 - [ ] 4 members in "Fade QA", each with 100 coins
 
-> **No games listed?** The Games list needs upcoming games. October has NFL, NHL and playoff baseball, so there should be plenty. If Browse games is empty, tell me, and skip the steps that need a bet (marked 🎲).
+> **No games listed?** The Games list needs upcoming games. If Browse games is empty, tell me, and skip the steps that need a bet (marked 🎲).
 
 ---
 
@@ -135,7 +96,7 @@ No red error text anywhere = lockdown is fine. 🎲
 ### 3.5 Buyback by vote
 - [ ] As A create a second group **"Vote QA"** with Buybacks = **By group vote**. Join B and C.
 - [ ] 🎲 Make B broke: B posts an offer for all 100 coins' worth, C takes it all, then use `ops/dev_force_result.sql` with the result that makes B's side lose (`outcome_0` = the first side listed wins, `outcome_1` = the second; see the file's header). B now has 0 available and nothing tied up.
-- [ ] As B: group screen shows "This group decides buybacks by vote…" and **Ask the group for a buyback**. Tap it.
+- [ ] As B: group screen shows "This group decides buybacks by vote…" and **Ask the group for a buyback**. Tap it. (If the orange "You're out of coins" box isn't there, pull down to refresh the group screen once and tell me: this is the area the reviewer flagged.)
 - [ ] As A: Votes & seasons → open vote "Buyback for @…" → **Yes**. As C: **Yes** → passes; B has 100 coins again.
 - [ ] Leaderboard: B shows "1 buyback"; B's **net profit is still negative** (a buyback never erases a loss).
 - [ ] B can't ask again while holding coins (the button isn't shown).
@@ -173,25 +134,23 @@ Friends button = the **two‑person icon** at the top‑left of the Home screen 
 - [ ] Mistakes: your own username → error; a username that doesn't exist → error; a person who blocked you → can't be added.
 - [ ] Not‑friends can't see each other's score; friends can (that's the only place lifetime score is shown to others).
 
-## 7. Notification settings and queue (Milestone 11, no Apple account needed)
+## 7. Notifications (Milestone 11) — push is live now
 
 - [ ] Settings → **Notifications**: five toggles under "Tell me when…" (new offer / someone takes my offer / my bet is settled / a vote is called / a vote passes or fails). Flip one off, leave the screen, come back → it stayed off.
-- [ ] Tap **Allow notifications** → iOS asks → Allow. (In the simulator without the paid account, nothing is actually delivered; that is expected.)
-- [ ] **See what *would* be sent.** Pretend B has a phone (SQL editor):
+- [ ] **Real push, on your iPhone:** sign in on the phone with one of the debug accounts (say B, who is in "Fade QA"), tap **Allow notifications** → Allow. On the simulator, as A, post an offer in "Fade QA" (🎲) or call a reset vote. Within about a minute the **phone** shows "New offer in Fade QA …" or "Reset vote in Fade QA".
+  - [ ] Turn "A new offer is posted" **off** for B, post another offer → no push for it.
+  - [ ] **Sign out on the phone**, then trigger another event → the phone does **not** get it (the token was removed). Sign in again → pushes resume after the app registers.
+  - [ ] People who muted or blocked the poster get nothing for that poster's activity.
+- [ ] **Without the phone** (what *would* be sent): pretend B has a phone (SQL editor):
   ```sql
   insert into device_tokens (user_id, token, environment)
   values ((select id from profiles where username = '<B username>'), repeat('ab', 32), 'sandbox');
   ```
-  Then as A post an offer in Fade QA, and call a reset vote; as C take an offer. Then:
-  ```sql
-  select created_at, kind, title, body from notification_outbox order by id desc limit 10;
-  ```
-  - [ ] B has a `new_offer` row ("New offer in Fade QA …") and a `vote_called` row.
-  - [ ] Turn "A new offer is posted" **off** for B in the app, post another offer → **no** new `new_offer` row for B.
-  - [ ] People who muted/blocked the poster get nothing for that poster's activity.
-  - [ ] Clean up: `delete from device_tokens where token = repeat('ab', 32);`
+  Trigger events as above, then `select created_at, kind, title, body, sent_at, last_error from notification_outbox order by id desc limit 10;`. Rows for a fake token get `last_error` (Apple rejects it) — that's expected. Clean up: `delete from device_tokens where token = repeat('ab', 32);`
 
 ## 8. Delete an account (Milestone 11) ⭐
+
+*(Deleting a Sign-in-with-Apple account and the Apple disconnect already passed on your iPhone: §12. This section tests the **group side** of deletion with debug accounts, which have no Apple link: the function skips Apple and deletes straight away.)*
 
 Setup: create account **E** (`qa5@example.com`, username `qa5`), join "Fade QA", post an offer (10 shares), have C take 4 of them (🎲), E writes a comment. Note C's balance first.
 - [ ] As E: Settings → **Delete my account…** → the screen lists exactly what happens → type **DELETE** → **Delete my account**. You land on the sign‑in screen.
@@ -230,7 +189,7 @@ select * from check_ledger_integrity();
 select * from check_betting_integrity();
 select * from check_season_integrity();
 select kind, ok, detail, at from sync_log where ok = false order by at desc limit 20;   -- ideally empty
-select jobname, active from cron.job order by jobname;                                  -- 5 active jobs
+select jobname, active from cron.job order by jobname;                                  -- 6 active jobs
 ```
 - [ ] first three: no rows
 - [ ] `sync_log` failures: none (or tell me what's there)
@@ -247,7 +206,7 @@ The exact steps are in `docs/APPLE_ACCOUNT_STEPS.md`.
 | Apple token capture (`apple-link`) | ✅ Verified: `apple_tokens` went to 1 after signing in |
 | Account deletion + Apple disconnect (`apple-delete-account`) | ✅ Verified: account deleted, token row removed, the entry disappeared from iPhone Settings → Sign in with Apple |
 | Push notifications (`send-push` + `schedule_push.sql`) | ✅ Verified with a test message (queued in SQL, arrived on the phone). ⬜ Still to try: a *real* event, e.g. another account posts an offer in your group |
-| Sign‑out removes the push token | ⬜ After signing out, queue a test message: it must NOT arrive |
+| Sign‑out removes the push token | ⬜ Covered in §7 |
 | Invite link `fade://join/CODE` | ⬜ Needs the URL scheme added (steps §10 in the Apple guide) |
 | TestFlight / App Store | ⬜ `docs/APPLE_ACCOUNT_STEPS.md` §12–13 |
 
@@ -269,26 +228,26 @@ I chose the simplest option consistent with CLAUDE.md and SPEC.md each time; the
 12. **Push text** shows prices as cents plus American odds (for example "60¢ (−150)").
 13. **Permission lockdown (0014)** — see §9. If anything in the app now says "permission denied", that's this.
 14. **Sign‑out removes the phone's push token**, so a signed‑out phone stops getting that account's notifications.
-15. **Apple token revocation** is built but switched **off** (`appleRevocationEnabled = false`) until the paid account exists; **required** before App Store submission.
+15. **Apple token revocation** is now **on** (`appleRevocationEnabled = true`) and verified on your iPhone; it's required for App Store submission.
 16. **Invite links:** the app understands `fade://join/CODE`, but the URL scheme isn't registered yet, so sharing still sends the plain code. (A real tappable link needs a domain.)
 17. **Public pages** (support, privacy, terms) live in `docs/` for free GitHub Pages hosting; they contain placeholders for your email/name/state that **you must fill in**.
 18. **No ads, analytics, or crash reporters** were added (keeps the App Privacy answers simple).
 
 ## 14. Known limitations / risks
 
-- **Never compiled** — see the top of this file.
+- **Screens not yet tapped through** — see the top of this file.
+- **The Apple login is only proven on your own account/phone.** Other people's phones will exercise the same code, but test with a friend during TestFlight.
 - Reviewers can't use a demo password (Apple‑only login). The plan in `APP_STORE_LISTING.md` §7 (a demo group with your open offers) covers it, but it depends on there being upcoming games the day of review.
 - A banned person can delete their account and sign up again with the same Apple ID. Fine at friend‑group scale.
 - Polymarket permission (Terms of Use) is still your call — see `APP_REVIEW_AUDIT.md` item P‑1.
-- Email login is still on in Supabase for your debug accounts. Turn it **off** before TestFlight (`APPLE_ACCOUNT_STEPS.md` §11).
+- Email login is still on in Supabase for your debug accounts. Turn it **off** before TestFlight (`APPLE_ACCOUNT_STEPS.md` §11). After that, the debug box stops working; plan your A–D testing before then.
 
 ## 15. What to send me when you're done
 
 Copy this and fill it in:
 
 ```
-Build: [ok / errors pasted below]
-Parts passed: 1.2 [ ] 1.3 [ ] 1.4 [ ] 2 [ ] 3 [ ] 4 [ ] 5 [ ] 6 [ ] 7 [ ] 8 [ ] 9 [ ] 10 [ ] 11 [ ]
+Parts passed: 2 [ ] 3 [ ] 4 [ ] 5 [ ] 6 [ ] 7 [ ] 8 [ ] 9 [ ] 10 [ ] 11 [ ]
 Failed steps (number + what you saw + screenshot):
 Decisions in §13 you want changed:
 Placeholders for the legal pages (support email / your name / state or country):
