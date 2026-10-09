@@ -38,6 +38,8 @@ struct UsernameView: View {
             .frame(minHeight: 56)
             .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(focused ? Theme.accent : Theme.line, lineWidth: 1.5))
+            .contentShape(Rectangle())
+            .onTapGesture { focused = true }
 
             if let errorMessage { ErrorLine(errorMessage) }
 
@@ -48,10 +50,16 @@ struct UsernameView: View {
             .disabled(!isValid || session.isBusy)
 
             Spacer()
-            Button("Sign out") { Task { await session.signOut() } }
-                .font(.fadeCaption.weight(.semibold))
-                .foregroundStyle(Theme.text2)
-                .frame(maxWidth: .infinity, minHeight: 44)
+            Button {
+                Task { await session.signOut() }
+            } label: {
+                Text("Sign out")
+                    .font(.fadeCaption.weight(.semibold))
+                    .foregroundStyle(Theme.text2)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

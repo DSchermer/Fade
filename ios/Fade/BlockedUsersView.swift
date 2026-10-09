@@ -42,6 +42,7 @@ struct BlockedUsersView: View {
         .fadeScreen()
         .navigationTitle("Blocked & muted")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .task { await reload() }
     }
 

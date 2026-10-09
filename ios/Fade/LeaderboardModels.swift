@@ -99,7 +99,9 @@ struct GroupSummary: Equatable {
     static func build(from rows: [LeaderboardRow], me: UUID) -> [UUID: GroupSummary] {
         var result: [UUID: GroupSummary] = [:]
         for (groupID, members) in Dictionary(grouping: rows, by: { $0.groupId }) {
-            let ranked = members.sorted { ($0.netProfit, $0.balance) > ($1.netProfit, $1.balance) }
+            let ranked = members.sorted { a, b in
+                (a.netProfit, a.balance, b.userId.uuidString) > (b.netProfit, b.balance, a.userId.uuidString)
+            }
             let index = ranked.firstIndex { $0.userId == me }
             result[groupID] = GroupSummary(
                 memberCount: members.count,

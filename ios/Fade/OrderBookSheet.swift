@@ -119,6 +119,7 @@ struct OrderBookSheet: View {
                 .padding(.trailing, 12)
                 .frame(minHeight: 44)
                 .overlay(Capsule().strokeBorder(Theme.line, lineWidth: 1))
+                .contentShape(Capsule())
             }
             .accessibilityLabel("Group: \(group?.group.name ?? "none"). Change group")
             Spacer()
@@ -182,8 +183,11 @@ struct OrderBookRow: View {
                         .foregroundStyle(Theme.text2)
                         .lineLimit(1)
                 }
+                Text("\(offer.sharesOpen) share\(offer.sharesOpen == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundStyle(Theme.text2)
                 HStack(spacing: 5) {
-                    Text("\(offer.sharesOpen) shares · risk")
+                    Text("Risk")
                         .font(.caption)
                         .foregroundStyle(Theme.text2)
                     CoinAmount(centicoins: Stakes.takerRisk(shares: offer.sharesOpen, cents: offer.priceCents), font: .caption.weight(.semibold), iconSize: 11)
@@ -192,8 +196,6 @@ struct OrderBookRow: View {
                         .foregroundStyle(Theme.text2)
                     CoinAmount(centicoins: Stakes.makerRisk(shares: offer.sharesOpen, cents: offer.priceCents), font: .caption.weight(.semibold), iconSize: 11)
                 }
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
             }
             Spacer(minLength: 4)
             if isMine {

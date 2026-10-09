@@ -108,7 +108,7 @@ struct GamesTabView: View {
             Spacer()
             CircleIconButton(systemImage: isSearching ? "xmark" : "magnifyingglass", label: isSearching ? "Close search" : "Search games") {
                 isSearching.toggle()
-                if isSearching { searchFocused = true } else { searchText = "" }
+                if !isSearching { searchText = "" }
             }
         }
         .padding(.horizontal, 16)
@@ -123,7 +123,10 @@ struct GamesTabView: View {
                 .font(.fadeBody)
                 .foregroundStyle(Theme.text)
                 .focused($searchFocused)
+                .task { searchFocused = true }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { searchFocused = true }
         .padding(.horizontal, 14)
         .frame(minHeight: 44)
         .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous))
@@ -194,6 +197,8 @@ struct GamesTabView: View {
             Text(GameTime.dayTitle(day))
                 .font(.fadeSectionTitle)
                 .foregroundStyle(Theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .accessibilityAddTraits(.isHeader)
             Spacer()
             if showColumns {

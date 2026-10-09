@@ -36,7 +36,14 @@ struct GamePageView: View {
                 GroupPickerButton(groups: groups.memberships, selected: activeGroup) { id in router.gamesGroupID = id }
                     .padding(.horizontal, 16)
 
-                if let loaded {
+                if let loaded, loaded.moneylines.isEmpty && loaded.spreads.isEmpty && loaded.totals.isEmpty {
+                    EmptyStateCard(
+                        systemImage: "sportscourt",
+                        title: "No markets right now",
+                        message: marketStore.errorMessage ?? "This game's markets aren't open for betting, or haven't loaded yet. Pull down to try again."
+                    )
+                    .padding(.horizontal, 16)
+                } else if let loaded {
                     MarketCard(title: "Win", markets: loaded.moneylines.map(\.ref), best: best, format: format, initiallyShown: 1) { target = $0 }
                     MarketCard(title: "Spread", markets: orderedLines(loaded.spreads), best: best, format: format, initiallyShown: 1) { target = $0 }
                     MarketCard(title: GamesBoard.totalTitle(league: game.league), markets: orderedLines(loaded.totals), best: best, format: format, initiallyShown: 1) { target = $0 }
@@ -59,6 +66,7 @@ struct GamePageView: View {
         .fadeScreen()
         .navigationTitle(game.eventTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .sheet(item: $target) { target in
             OrderBookSheet(target: target) { await reloadOffers() }
         }

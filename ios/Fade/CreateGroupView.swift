@@ -65,6 +65,8 @@ struct CreateGroupView: View {
                             .frame(minHeight: 56)
                             .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(nameFocused ? Theme.accent : Theme.line, lineWidth: 1.5))
+                            .contentShape(Rectangle())
+                            .onTapGesture { nameFocused = true }
                             .onChange(of: name) { _, value in
                                 if value.count > Self.nameLimit { name = String(value.prefix(Self.nameLimit)) }
                             }

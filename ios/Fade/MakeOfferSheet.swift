@@ -33,7 +33,7 @@ struct MakeOfferSheet: View {
 
     private var cents: Int? { Odds.parseCents(priceText, format: format) }
     private var shares: Int? {
-        guard let n = Int(sharesText.trimmingCharacters(in: .whitespaces)), n >= 1 else { return nil }
+        guard let n = Int(sharesText.trimmingCharacters(in: .whitespaces)), n >= 1, n <= 1_000_000 else { return nil }
         return n
     }
     private var risk: Int64? {

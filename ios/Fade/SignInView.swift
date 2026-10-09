@@ -13,82 +13,93 @@ struct SignInView: View {
     #endif
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer(minLength: 24)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer(minLength: 24)
 
-            VStack(alignment: .leading, spacing: 10) {
-                (Text("fade").font(.system(size: 84, weight: .heavy)).tracking(-3)
-                    + Text(".").font(.system(size: 84, weight: .heavy)).foregroundColor(Theme.accent))
-                    .accessibilityLabel("Fade")
-                    .accessibilityAddTraits(.isHeader)
-                Text("Take the other side of your friends' picks.")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Theme.text)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+                    VStack(alignment: .leading, spacing: 10) {
+                        (Text("fade").font(.system(size: 84, weight: .heavy)).tracking(-3)
+                            + Text(".").font(.system(size: 84, weight: .heavy)).foregroundColor(Theme.accent))
+                            .accessibilityLabel("Fade")
+                            .accessibilityAddTraits(.isHeader)
+                        Text("Take the other side of your friends' picks.")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Theme.text)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
 
-            VStack(alignment: .leading, spacing: 14) {
-                step(1, "Post your own odds on real games")
-                step(2, "Friends take the other side of any part of it")
-                step(3, "Climb your group's leaderboard")
-            }
-            .padding(.top, 28)
+                    VStack(alignment: .leading, spacing: 14) {
+                        step(1, "Post your own odds on real games")
+                        step(2, "Friends take the other side of any part of it")
+                        step(3, "Climb your group's leaderboard")
+                    }
+                    .padding(.top, 28)
 
-            Spacer(minLength: 24)
+                    Spacer(minLength: 24)
 
-            VStack(spacing: 14) {
-                HStack(spacing: 10) {
-                    CoinIcon(size: 22)
-                    Text("Fade coins are free play money. They have no cash value and can't be bought, sold or redeemed.")
-                        .font(.fadeCaption)
-                        .foregroundStyle(Theme.text2)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(spacing: 14) {
+                        HStack(spacing: 10) {
+                            CoinIcon(size: 22)
+                            Text("Fade coins are free play money. They have no cash value and can't be bought, sold or redeemed.")
+                                .font(.fadeCaption)
+                                .foregroundStyle(Theme.text2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+
+                        if !AppConfig.isConfigured {
+                            Text("Backend not configured yet. See SETUP.md (AppConfig.swift).")
+                                .font(.fadeCaption)
+                                .foregroundStyle(Theme.pending)
+                                .multilineTextAlignment(.center)
+                        }
+
+                        if let message = session.errorMessage { ErrorLine(message) }
+
+                        SignInWithAppleButton(.signIn, onRequest: { request in
+                            let nonce = Nonce.random()
+                            rawNonce = nonce
+                            request.requestedScopes = []          // we don't need the name or email
+                            request.nonce = Nonce.sha256(nonce)
+                        }, onCompletion: { result in
+                            handle(result)
+                        })
+                        .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                        .frame(height: 56)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .disabled(session.isBusy || !AppConfig.isConfigured)
+
+                        #if DEBUG
+                        debugLogin
+                        #endif
+
+                        Text(agreement)
+                            .font(.caption)
+                            .foregroundStyle(Theme.text2)
+                            .multilineTextAlignment(.center)
+                            .tint(Theme.accent)
+
+                        Button {
+                            showLegal = true
+                        } label: {
+                            Text("About coins and help resources")
+                                .font(.fadeCaption.weight(.semibold))
+                                .foregroundStyle(Theme.accent)
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .padding(12)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
-
-                if !AppConfig.isConfigured {
-                    Text("Backend not configured yet. See SETUP.md (AppConfig.swift).")
-                        .font(.fadeCaption)
-                        .foregroundStyle(Theme.pending)
-                        .multilineTextAlignment(.center)
-                }
-
-                if let message = session.errorMessage { ErrorLine(message) }
-
-                SignInWithAppleButton(.signIn, onRequest: { request in
-                    let nonce = Nonce.random()
-                    rawNonce = nonce
-                    request.requestedScopes = []          // we don't need the name or email
-                    request.nonce = Nonce.sha256(nonce)
-                }, onCompletion: { result in
-                    handle(result)
-                })
-                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                .frame(height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .disabled(session.isBusy || !AppConfig.isConfigured)
-
-                #if DEBUG
-                debugLogin
-                #endif
-
-                Text(agreement)
-                    .font(.caption)
-                    .foregroundStyle(Theme.text2)
-                    .multilineTextAlignment(.center)
-                    .tint(Theme.accent)
-
-                Button("About coins and help resources") { showLegal = true }
-                    .font(.fadeCaption.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(minHeight: 44)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .fadeScreen()
         .sheet(isPresented: $showLegal) { LegalView() }
     }

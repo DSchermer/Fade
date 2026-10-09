@@ -16,6 +16,7 @@ struct FriendsView: View {
     @State private var message: (text: String, ok: Bool)?
     @State private var friendToRemove: FriendScore?
     @State private var isBusy = false
+    @FocusState private var usernameFocused: Bool
 
     init(initialTab: Part = .board) {
         _part = State(initialValue: initialTab)
@@ -50,6 +51,7 @@ struct FriendsView: View {
         .fadeScreen()
         .navigationTitle("Friends")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .task { await reload() }
         .confirmationDialog("Remove \(friendToRemove?.displayName ?? "friend")?", isPresented: Binding(
             get: { friendToRemove != nil }, set: { if !$0 { friendToRemove = nil } }
@@ -164,9 +166,12 @@ struct FriendsView: View {
                     TextField("username", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .focused($usernameFocused)
                         .font(.fadeHeadline.weight(.medium))
                         .foregroundStyle(Theme.text)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { usernameFocused = true }
                 .padding(.horizontal, 16)
                 .frame(minHeight: 56)
                 .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))

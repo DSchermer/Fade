@@ -87,6 +87,8 @@ struct DeleteAccountView: View {
                         .frame(minHeight: 52)
                         .background(Theme.bg, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(focused || confirmed ? Theme.loss : Theme.line, lineWidth: 1.5))
+                        .contentShape(Rectangle())
+                        .onTapGesture { focused = true }
                 }
 
                 if let errorMessage { ErrorLine(errorMessage) }

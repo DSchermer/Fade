@@ -14,6 +14,7 @@ struct VotesView: View {
         .fadeScreen()
         .navigationTitle("Votes and seasons")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
     }
 }
 
@@ -24,7 +25,7 @@ struct VotesContent: View {
 
     let group: GroupInfo
     var refreshTick = 0
-    var onChange: () -> Void = {}
+    var onVotesChanged: () -> Void = {}
 
     @State private var votes: [VoteRow] = []
     @State private var standings: [SeasonStandingRow] = []
@@ -174,7 +175,7 @@ struct VotesContent: View {
         defer { isWorking = false }
         errorMessage = await groups.callVote(groupID: group.id, kind: "reset", userID: userID)
         await reload()
-        onChange()
+        onVotesChanged()
     }
 
     private func cast(_ vote: VoteRow, yes: Bool) async {
@@ -183,7 +184,7 @@ struct VotesContent: View {
         defer { isWorking = false }
         errorMessage = await groups.castVote(voteID: vote.id, yes: yes, userID: userID)
         await reload()
-        onChange()
+        onVotesChanged()
     }
 }
 
@@ -355,5 +356,6 @@ struct SeasonDetailView: View {
         .fadeScreen()
         .navigationTitle("Season \(number)")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
     }
 }

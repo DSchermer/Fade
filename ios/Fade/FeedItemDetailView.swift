@@ -54,6 +54,7 @@ struct FeedItemDetailView: View {
         .fadeScreen()
         .navigationTitle("Post")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .toolbar {
             if let actor = item.actorId, actor != me {
                 ToolbarItem(placement: .topBarTrailing) {

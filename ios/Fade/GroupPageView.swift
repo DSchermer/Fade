@@ -55,6 +55,7 @@ struct GroupPageView: View {
     @State private var memberToBlock: LeaderboardRow?
     @State private var didAutoOpen = false
     @State private var openOfferCount = 0
+    @State private var didLeave = false
 
     private var group: GroupInfo { membership.group }
     /// Always the latest balance (it changes whenever you post, take or cancel).
@@ -89,6 +90,7 @@ struct GroupPageView: View {
         .fadeScreen()
         .navigationTitle(group.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { sheet = .invite } label: { Label("Invite", systemImage: "person.badge.plus") }
@@ -102,7 +104,7 @@ struct GroupPageView: View {
                 sheet = .buyback
             }
         }
-        .sheet(item: $sheet) { sheet in sheetView(sheet) }
+        .sheet(item: $sheet, onDismiss: { if didLeave { dismiss() } }) { sheet in sheetView(sheet) }
         .sheet(item: $reportTarget) { target in ReportView(target: target) }
         .confirmationDialog("Block \(memberToBlock?.displayName ?? "this person")?", isPresented: Binding(
             get: { memberToBlock != nil }, set: { if !$0 { memberToBlock = nil } }
@@ -179,7 +181,7 @@ struct GroupPageView: View {
         case .feed:
             FeedStream(groupID: group.id, scrolls: false, refreshTick: refreshTick) { EmptyView() }
         case .votes:
-            VotesContent(group: group, refreshTick: refreshTick) { Task { await reloadVotes() } }
+            VotesContent(group: group, refreshTick: refreshTick, onVotesChanged: { Task { await reloadVotes() } })
         case .members:
             membersSection
         }
@@ -313,7 +315,7 @@ struct GroupPageView: View {
             ) {
                 guard let userID = me else { return "You're signed out. Please sign in again." }
                 let error = await groups.leaveGroup(groupID: group.id, userID: userID)
-                if error == nil { dismiss() }
+                if error == nil { didLeave = true }        // the page closes after the sheet has slid away
                 return error
             }
         case .leaveBlocked(let bets):
@@ -386,7 +388,7 @@ struct LeaderboardList: View {
 
     private var sorted: [LeaderboardRow] {
         switch mode {
-        case .profit: return rows.sorted { ($0.netProfit, $0.balance) > ($1.netProfit, $1.balance) }
+        case .profit: return rows.sorted { a, b in (a.netProfit, a.balance, b.userId.uuidString) > (b.netProfit, b.balance, a.userId.uuidString) }
         case .balance: return rows.sorted { $0.balance > $1.balance }
         }
     }

@@ -40,6 +40,7 @@ struct MeTabView: View {
             .toolbar(.hidden, for: .navigationBar)
             .fadeTabBar()
             .task { await reload() }
+            .onChange(of: session.profile?.priceFormat) { _, _ in formatOverride = nil }
             .sheet(isPresented: $showLegal) { LegalView() }
             .sheet(isPresented: $showDelete) { DeleteAccountView() }
         }

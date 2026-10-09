@@ -276,8 +276,8 @@ struct LeaveBlockedSheet: View {
                             }
                             HStack(spacing: 8) {
                                 if bet.isAwaitingResult() {
-                                    StatusPill(text: "Game final", tone: .pending)
-                                    Text("Awaiting official result").font(.fadeCaption).foregroundStyle(Theme.text2)
+                                    StatusPill(text: "Pending", tone: .pending)
+                                    Text(bet.statusText(me)).font(.fadeCaption).foregroundStyle(Theme.text2)
                                 } else {
                                     StatusPill(text: "Upcoming", tone: .open)
                                     Text(GameTime.label(bet.gameStart)).font(.fadeCaption).foregroundStyle(Theme.text2)

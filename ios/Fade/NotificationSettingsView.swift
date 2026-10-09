@@ -41,6 +41,7 @@ struct NotificationSettingsView: View {
         .fadeScreen()
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
         .task {
             await refreshStatus()
             prefs = try? await supabase.rpc("my_notification_prefs").execute().value
@@ -70,10 +71,13 @@ struct NotificationSettingsView: View {
                     .foregroundStyle(Theme.text)
                     .fixedSize(horizontal: false, vertical: true)
                 if let url = URL(string: UIApplication.openSettingsURLString) {
-                    Link("Open Settings", destination: url)
-                        .font(.fadeBody.weight(.bold))
-                        .foregroundStyle(Theme.accent)
-                        .frame(minHeight: 44)
+                    Link(destination: url) {
+                        Text("Open Settings")
+                            .font(.fadeBody.weight(.bold))
+                            .foregroundStyle(Theme.accent)
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
                 }
             }
             .padding(14)

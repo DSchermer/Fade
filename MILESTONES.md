@@ -37,6 +37,6 @@ The design lives in the "Fade App Design" canvas (31 boards, link in CLAUDE.md).
 | R2 🚧 | **Games.** Games tab with Spread / Total / Win best-price cells, order-book sheet, full game page, make-offer and take-offer sheets. | Games tab | Best open offer per market |
 | R3 🚧 | **Bets and Groups.** Bets tab, Groups tab, group page (leaderboard, members, invite), votes, buyback and leave sheets. | Bets + Groups tabs | — |
 | R4 🚧 | **Me and the rest.** Me tab, friends, settings, notifications, blocked list, delete account, About & help, sign-in, username, empty states. | Me tab | — |
-| R5 | **Polish.** Light-mode pass, accessibility pass, independent code review, TESTING.md rewrite. | — | — |
+| R5 🚧 | **Polish.** Light-mode pass, accessibility pass, independent code review, TESTING.md rewrite. | — | — |
 
 **Not planned for v1:** Android, live betting, parlays, player props, real-money anything, public groups, full group chat, websocket streams (possible later upgrade).

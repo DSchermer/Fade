@@ -43,6 +43,8 @@ struct CoinAmount: View {
                 .font(font)
                 .monospacedDigit()
                 .foregroundStyle(color)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(text) coins")
@@ -334,11 +336,15 @@ struct QuantityStepper: View {
     var lessLabel = "Fewer"
     var moreLabel = "More"
 
-    private var current: Int { Int(text.trimmingCharacters(in: .whitespaces)) ?? minimum }
+    /// What's typed, kept in a sane range so a silly number can never overflow later maths.
+    private var current: Int { min(1_000_000_000, max(0, Int(text.trimmingCharacters(in: .whitespaces)) ?? minimum)) }
 
     var body: some View {
         HStack(spacing: 0) {
-            stepButton("minus", label: lessLabel) { text = String(max(minimum, current - step)) }
+            stepButton("minus", label: lessLabel) {
+                let next = max(minimum, current - step)
+                text = String(maximum.map { min($0, next) } ?? next)
+            }
             HStack(spacing: 6) {
                 if showsCoin { CoinIcon(size: 22) }
                 TextField("0", text: $text)

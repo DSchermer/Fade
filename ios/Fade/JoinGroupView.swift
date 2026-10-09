@@ -49,12 +49,16 @@ struct JoinGroupView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { focused = true }
 
-                Button("Paste from clipboard") {
+                Button {
                     if let text = UIPasteboard.general.string { code = Self.clean(text) }
+                } label: {
+                    Text("Paste from clipboard")
+                        .font(.fadeBody.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
-                .font(.fadeBody.weight(.semibold))
-                .foregroundStyle(Theme.accent)
-                .frame(minHeight: 44)
+                .buttonStyle(.plain)
             }
 
             VStack(alignment: .leading, spacing: 10) {
@@ -81,6 +85,9 @@ struct JoinGroupView: View {
         }
         .onAppear {
             if let prefill, code.isEmpty { code = Self.clean(prefill) }
+        }
+        .task {
+            try? await Task.sleep(nanoseconds: 350_000_000)     // wait for the sheet to finish sliding up
             focused = true
         }
     }

@@ -71,7 +71,7 @@ struct GroupsTabView: View {
             .navigationDestination(item: $opened) { membership in
                 GroupPageView(membership: membership, openBuybackOnAppear: openedWithBuyback)
             }
-            .task { await reload() }
+            .task(id: groups.memberships.count) { await reload() }
         }
     }
 
@@ -169,12 +169,16 @@ struct GroupCardView: View {
                 .font(.fadeBody)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 4)
-            Button(group.buybackPolicy == .vote ? "Ask" : "Buy back", action: onBuyback)
-                .font(.fadeBody.weight(.bold))
-                .foregroundStyle(Theme.onAccent)
-                .padding(.horizontal, 14)
-                .frame(minHeight: 44)
-                .background(Theme.pending, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Button(action: onBuyback) {
+                Text(group.buybackPolicy == .vote ? "Ask" : "Buy back")
+                    .font(.fadeBody.weight(.bold))
+                    .foregroundStyle(Theme.onAccent)
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 44)
+                    .background(Theme.pending, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            }
+            .buttonStyle(.plain)
         }
         .padding(12)
         .background(Theme.pending.opacity(0.09), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
