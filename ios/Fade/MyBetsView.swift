@@ -17,6 +17,8 @@ struct MyBetsView: View {
     private var format: PriceFormat { session.profile?.priceFormat ?? .cents }
     private var me: UUID { session.profile?.id ?? UUID() }
     private var openOffers: [OfferRow] { offers.filter { $0.status == "open" } }
+    private var pendingBets: [BetRow] { bets.filter { $0.status == "pending" } }
+    private var settledBets: [BetRow] { bets.filter { $0.status != "pending" } }
     private var endedOffers: [OfferRow] { offers.filter { $0.status != "open" && $0.sharesCancelled > 0 } }
 
     var body: some View {
@@ -47,9 +49,21 @@ struct MyBetsView: View {
                 }
             }
 
-            if !bets.isEmpty {
-                Section("Your bets") {
-                    ForEach(bets) { bet in
+            if !pendingBets.isEmpty {
+                Section {
+                    ForEach(pendingBets) { bet in
+                        BetRowView(bet: bet, me: me, format: format)
+                    }
+                } header: {
+                    Text("Waiting for a result")
+                } footer: {
+                    Text("Bets are paid when Polymarket finalizes the result. If a result is disputed it can take several days — your coins stay safely set aside until then.")
+                }
+            }
+
+            if !settledBets.isEmpty {
+                Section("Settled") {
+                    ForEach(settledBets) { bet in
                         BetRowView(bet: bet, me: me, format: format)
                     }
                 }
@@ -99,6 +113,7 @@ struct MyBetsView: View {
         guard let userID = session.profile?.id else { return }
         offers = await store.myOffers(groupID: groupID, userID: userID)
         bets = await store.myBets(groupID: groupID, userID: userID)
+        await groups.load(userID: userID)          // balances change when bets settle
         loaded = true
     }
 
@@ -123,7 +138,13 @@ struct BetRowView: View {
                 .font(.subheadline).foregroundStyle(.secondary)
             Text("Risk \(Coins.format(bet.myStake(me))) to win \(Coins.format(bet.theirStake(me))) coins")
                 .font(.subheadline)
-            Text(bet.statusText(me)).font(.footnote).foregroundStyle(.tint)
+            if let net = bet.netText(me), let won = bet.iWon(me) {
+                Text("\(won ? "Won" : "Lost") \(net)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(won ? Color.green : Color.red)
+            } else {
+                Text(bet.statusText(me)).font(.footnote).foregroundStyle(.tint)
+            }
         }
         .padding(.vertical, 2)
     }

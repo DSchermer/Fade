@@ -107,6 +107,17 @@ final class Session {
         }
     }
 
+    /// Re-reads your profile without touching the sign-in state (e.g. to update the win-loss record).
+    func refreshProfile() async {
+        guard let id = profile?.id else { return }
+        let rows: [Profile]? = try? await supabase.from("profiles")
+            .select()
+            .eq("id", value: id)
+            .execute()
+            .value
+        if let fresh = rows?.first { profile = fresh }
+    }
+
     private func loadProfile() async {
         do {
             let userID = try await supabase.auth.session.user.id

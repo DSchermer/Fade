@@ -96,6 +96,20 @@ tk=$(count race3 ok); cw=$(count race3 cancel_won)
 healthy || { echo "FAIL: integrity broken after race 3"; q -c "select * from check_ledger_integrity() union all select * from check_betting_integrity()"; exit 1; }
 echo "   ok: take won $tk rounds, cancel won $cw, never both"
 
+echo "4) the market ends; 12 connections try to settle it at the same moment…"
+PENDING=$(q -c "select count(*) from bets where market_id = '$MARKET' and status = 'pending'")
+OPEN_LEFT=$(q -c "select count(*) from offers where market_id = '$MARKET' and status = 'open'")
+q -c "update markets set closed = true, uma_status = 'resolved', outcome_prices = '{1,0}', resolution = 'outcome_0' where id = '$MARKET'" >/dev/null
+for k in $(seq 1 8); do ( q -c "select settle_market('$MARKET')" >> "$out/settle4" 2>&1 ) & done
+for k in $(seq 1 4); do ( q -c "select settle_resolved_markets()" >> "$out/settle4" 2>&1 ) & done
+wait
+PAID=$(awk '{s += $1} END {print s + 0}' "$out/settle4")
+[ "$PAID" = "$PENDING" ] || { echo "FAIL: $PENDING bets were pending but the 12 callers paid $PAID in total (each must be paid exactly once)"; cat "$out/settle4" | tr '\n' ' '; exit 1; }
+[ "$(q -c "select count(*) from bets where market_id = '$MARKET' and status = 'pending'")" = 0 ] || { echo "FAIL: some bets still pending"; exit 1; }
+healthy || { echo "FAIL: integrity broken after race 4"; q -c "select * from check_ledger_integrity() union all select * from check_betting_integrity()" | head; exit 1; }
+[ "$(q -c "select count(*) from offers where market_id = '$MARKET' and status = 'open'")" = 0 ] || { echo "FAIL: open offers left on a finished market"; exit 1; }
+echo "   ok: $PENDING bets paid exactly once between 12 callers; $OPEN_LEFT leftover open offer(s) returned"
+
 total=$(q -c "select sum(available + escrow) from group_members where group_id = '$GROUP'")
 expected=$(q -c "select sum(delta) from ledger where group_id = '$GROUP' and kind in ('grant', 'buyback')")
 [ "$total" = "$expected" ] || { echo "FAIL: coins created or destroyed ($total vs $expected)"; exit 1; }

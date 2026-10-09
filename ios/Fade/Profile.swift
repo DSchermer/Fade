@@ -13,10 +13,14 @@ struct Profile: Codable, Identifiable {
     let id: UUID
     var username: String?
     var priceFormat: PriceFormat
+    var lifetimeWins: Int
+    var lifetimeLosses: Int
 
     enum CodingKeys: String, CodingKey {
         case id
         case username
         case priceFormat = "price_format"
+        case lifetimeWins = "lifetime_wins"
+        case lifetimeLosses = "lifetime_losses"
     }
 }

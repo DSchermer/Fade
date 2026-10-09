@@ -1,3 +1,29 @@
+# Setup — Milestone 6 (settling bets)
+
+## 1. Supabase (copy each file with `pbcopy`, paste into a new query, Run)
+1. `pbcopy < ../supabase/migrations/20261008000006_settlement.sql`
+2. `pbcopy < ../supabase/ops/schedule_settlement.sql` — schedules the job that pays out finished games every minute. It prints a job number.
+3. Check both: `select * from check_ledger_integrity();` and `select * from check_betting_integrity();` — **no rows**.
+
+## 2. App
+`git pull`, `cd ios && xcodegen`, Run.
+
+## What to tap to test Milestone 6
+**A. Fast test (pretend Polymarket finished a game).** You need a bet between two accounts first (Milestone 5 steps; use a game that hasn't started).
+1. In Supabase run this to find the bet's market id:
+   `select m.id, m.event_title, m.question, count(*) as pending_bets from public.bets b join public.markets m on m.id = b.market_id where b.status = 'pending' group by 1, 2, 3;`
+2. `pbcopy < ../supabase/ops/dev_force_result.sql`, paste into a new query, replace `PASTE-MARKET-ID-HERE` with that id (keep the quotes), leave `outcome_0` (first side listed wins) or change it to `outcome_1` / `void`, Run. The two result tables at the bottom must say 0 rows.
+3. In the app, open the group → **My bets** (pull down to refresh). The bet moved to **Settled** and says **Won +… coins** (green) or **Lost -… coins** (red). Check balances on the group screen: the winner collected the whole pot; the loser's tied-up coins are gone; any unfilled shares were returned.
+4. Gear → Settings: **Record (won–lost)** shows 1–0 for the winner and 0–1 for the loser.
+5. Repeat with a different bet and choose `void`: **Voided — stakes refunded**, both balances back to what they were, and the record does not change.
+6. Run the same file again with the same market: nothing changes (a bet is never paid twice).
+
+**B. Real test (recommended before you trust it).** Place a small bet between your test accounts on a game that starts tonight. After the game ends, Polymarket usually finalizes within a couple of hours; the app settles it on its own within about 6 minutes of that. Until then **My bets** shows "Game started — awaiting official result".
+
+**What should NOT happen:** a bet on a game that is over but not yet final (Polymarket "proposed" or "disputed") must stay pending, with its coins still set aside.
+
+---
+
 # Setup — Milestone 5 (offers and bets)
 
 ## 1. Supabase (SQL Editor, copy each file with `pbcopy` as before)

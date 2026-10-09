@@ -136,6 +136,21 @@ struct BetRow: Decodable, Identifiable, MarketDescribing {
     func theirStake(_ me: UUID) -> Int64 { iAmMaker(me) ? takerStake : makerStake }
     func opponent(_ me: UUID) -> String { "@" + ((iAmMaker(me) ? takerUsername : makerUsername) ?? "unknown") }
 
+    /// true = I won, false = I lost, nil = not decided (pending or void).
+    func iWon(_ me: UUID) -> Bool? {
+        switch status {
+        case "won_maker": return iAmMaker(me)
+        case "won_taker": return !iAmMaker(me)
+        default: return nil
+        }
+    }
+
+    /// "+30 coins" / "-20 coins" once decided.
+    func netText(_ me: UUID) -> String? {
+        guard let won = iWon(me) else { return nil }
+        return won ? "+\(Coins.format(theirStake(me))) coins" : "-\(Coins.format(myStake(me))) coins"
+    }
+
     func statusText(_ me: UUID) -> String {
         switch status {
         case "won_maker": return iAmMaker(me) ? "Won" : "Lost"

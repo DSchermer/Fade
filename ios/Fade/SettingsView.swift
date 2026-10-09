@@ -11,6 +11,8 @@ struct SettingsView: View {
             Form {
                 Section("Account") {
                     LabeledContent("Username", value: "@\(session.profile?.username ?? "")")
+                    LabeledContent("Record (won–lost)",
+                                   value: "\(session.profile?.lifetimeWins ?? 0)–\(session.profile?.lifetimeLosses ?? 0)")
                 }
 
                 Section {
@@ -43,6 +45,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .task { await session.refreshProfile() }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
