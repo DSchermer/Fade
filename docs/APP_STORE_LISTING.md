@@ -12,7 +12,7 @@ Everything you need to type into App Store Connect, written ahead of time. Needs
 |---|---|
 | App name (30 max) | **Fade** |
 | Subtitle (30 max) | **Play-money picks with friends** |
-| Bundle ID | `com.dschermer.fadeapp` |
+| Bundle ID | `com.dschermer.fade` |
 | SKU (anything, never shown) | `fade-ios-001` |
 | Primary category | **Sports** |
 | Secondary category | **Social Networking** |

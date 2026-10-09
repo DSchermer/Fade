@@ -6,7 +6,7 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const APPLE_KEY_ID = Deno.env.get("APPLE_KEY_ID")!;
 const APPLE_TEAM_ID = Deno.env.get("APPLE_TEAM_ID")!;
 const APPLE_PRIVATE_KEY = Deno.env.get("APPLE_PRIVATE_KEY")!; // the whole .p8 file for the Sign in with Apple key
-const APPLE_BUNDLE_ID = Deno.env.get("APPLE_BUNDLE_ID") ?? "com.dschermer.fadeapp";
+const APPLE_BUNDLE_ID = Deno.env.get("APPLE_BUNDLE_ID") ?? "com.dschermer.fade";
 
 const b64url = (data: ArrayBuffer | Uint8Array | string) => {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);

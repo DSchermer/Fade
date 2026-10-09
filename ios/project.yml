@@ -30,7 +30,7 @@ targets:
     # see docs/APPLE_ACCOUNT_STEPS.md "Invite links"). Leave off until then: the app builds fine without it.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fadeapp
+        PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade
         PRODUCT_NAME: Fade
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         DEVELOPMENT_TEAM: ""   # <- your 10-character Apple Team ID (see SETUP.md)
@@ -55,6 +55,6 @@ targets:
       - target: Fade
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fadeapp.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.dschermer.fade.tests
         GENERATE_INFOPLIST_FILE: YES
         SWIFT_VERSION: "5.0"
