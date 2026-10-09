@@ -62,8 +62,9 @@ The functions also get `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE
 
 ## 7. Start the push sender
 1. Supabase → **Project Settings** → **API Keys** → find the **service_role** key (on the "Legacy API keys" tab if the page has tabs; a long string starting `eyJ…`). **This key is a master password. Don't put it in the repository, the app, a screenshot or a chat.**
-2. Open `supabase/ops/schedule_push.sql`, replace `PASTE-YOUR-SERVICE-ROLE-KEY` with that key **in the SQL editor only** (don't save the file with the key in it), and Run it. This stores the key encrypted in Supabase Vault and schedules the sender every minute.
-3. Check it ran: SQL editor → `select * from cron.job_run_details order by start_time desc limit 5;` (status should be `succeeded`), and `select * from public.notification_outbox order by id desc limit 5;` (rows should get a `sent_at`).
+2. Supabase → **Integrations → Vault** (or **Database → Vault**) → **Add new secret** → Name `service_role_key` → paste the key → Save. (Storing it here, instead of inside a SQL query, keeps it out of the SQL editor's saved history.)
+3. Run `supabase/ops/schedule_push.sql` in the SQL editor. It schedules the sender every minute and prints `service_role_key_stored = 1`.
+4. Check it ran after a couple of minutes: `select status, return_message from cron.job_run_details order by start_time desc limit 5;` (status `succeeded`), and `select * from public.notification_outbox order by id desc limit 5;` (rows get a `sent_at`).
 
 ## 8. Switch Apple revocation on (required before App Store)
 Apple requires that deleting an account also revokes the Sign in with Apple connection. Our Edge Functions do that; the app only calls them when the flag is on.

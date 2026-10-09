@@ -1,9 +1,13 @@
 -- Run ONCE, only AFTER the `send-push` Edge Function is deployed and its secrets are set (see docs/APPLE_ACCOUNT_STEPS.md).
--- 1. Replace PASTE-YOUR-SERVICE-ROLE-KEY with the "service_role" key (Project Settings → API). It is stored encrypted in
---    Supabase Vault — it never goes in the repository or the app.
--- 2. Run this whole file.
+--
+-- BEFORE running this file, store the project's "service_role" key in Supabase Vault through the dashboard (so it never appears in
+-- a SQL query, a query history, or this repository):
+--   Dashboard → Project Settings → API Keys → copy the `service_role` key (Legacy API keys tab; a long string starting eyJ…)
+--   Dashboard → Integrations → Vault (or Database → Vault) → Add new secret → Name: service_role_key → paste the key → Save.
+-- The key is a master password: never put it in the app, in this repository, or in chat.
+--
+-- Then run this whole file. It schedules the sender every minute.
 create extension if not exists pg_net;
-select vault.create_secret('PASTE-YOUR-SERVICE-ROLE-KEY', 'service_role_key');
 
 select cron.schedule('fade-send-push', '* * * * *', $$
   select net.http_post(
@@ -12,3 +16,6 @@ select cron.schedule('fade-send-push', '* * * * *', $$
                                   'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key')),
     body    := '{}'::jsonb)
 $$);
+
+-- Check that the key is stored (should return 1, and NOT show the key):
+select count(*) as service_role_key_stored from vault.decrypted_secrets where name = 'service_role_key';
