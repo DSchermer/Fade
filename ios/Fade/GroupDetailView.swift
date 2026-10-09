@@ -65,6 +65,14 @@ struct GroupDetailView: View {
                 Text("Anyone with this code can join. Invite links that open the app directly come later.")
             }
 
+            Section("Activity") {
+                NavigationLink {
+                    FeedView(groupID: group.id)
+                } label: {
+                    Label("Group feed", systemImage: "text.bubble")
+                }
+            }
+
             Section("Bets") {
                 NavigationLink {
                     GamesView(groupID: group.id)

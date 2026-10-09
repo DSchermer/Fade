@@ -6,6 +6,7 @@ struct HomeView: View {
     @State private var showSettings = false
     @State private var showCreate = false
     @State private var showJoin = false
+    @State private var showFriends = false
 
     var body: some View {
         NavigationStack {
@@ -40,6 +41,9 @@ struct HomeView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { showSettings = true } label: { Image(systemName: "gearshape") }
                 }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showFriends = true } label: { Image(systemName: "person.2") }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button("Create a group", systemImage: "plus") { showCreate = true }
@@ -59,10 +63,17 @@ struct HomeView: View {
                 .padding()
             }
             .refreshable { await reload() }
-            .task(id: session.profile?.id) { await reload() }
+            .task(id: session.profile?.id) {
+                await reload()
+                if session.pendingJoinCode != nil { showJoin = true }
+            }
             .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showCreate) { CreateGroupView() }
-            .sheet(isPresented: $showJoin) { JoinGroupView() }
+            .sheet(isPresented: $showJoin, onDismiss: { session.pendingJoinCode = nil }) {
+                JoinGroupView(prefill: session.pendingJoinCode)
+            }
+            .sheet(isPresented: $showFriends) { FriendsView() }
+            .onChange(of: session.pendingJoinCode) { _, code in if code != nil { showJoin = true } }
         }
     }
 

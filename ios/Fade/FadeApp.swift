@@ -6,6 +6,8 @@ struct FadeApp: App {
     @State private var groups = GroupStore()
     @State private var markets = MarketStore()
     @State private var offers = OfferStore()
+    @State private var feed = FeedStore()
+    @State private var friends = FriendStore()
 
     var body: some Scene {
         WindowGroup {
@@ -14,6 +16,9 @@ struct FadeApp: App {
                 .environment(groups)
                 .environment(markets)
                 .environment(offers)
+                .environment(feed)
+                .environment(friends)
+                .onOpenURL { session.handle(url: $0) }
                 .task { await session.restore() }
         }
     }

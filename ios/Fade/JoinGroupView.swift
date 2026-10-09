@@ -5,6 +5,8 @@ struct JoinGroupView: View {
     @Environment(GroupStore.self) private var groups
     @Environment(\.dismiss) private var dismiss
 
+    var prefill: String? = nil
+
     @State private var code = ""
     @State private var errorMessage: String?
     @State private var isSaving = false
@@ -28,6 +30,7 @@ struct JoinGroupView: View {
             }
             .navigationTitle("Join a group")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { if let prefill, code.isEmpty { code = prefill } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {

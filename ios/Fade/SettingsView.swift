@@ -38,6 +38,7 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink("Blocked & muted people") { BlockedUsersView() }
                     Button("About coins & help") { showLegal = true }
                     Button("Sign out", role: .destructive) {
                         Task {

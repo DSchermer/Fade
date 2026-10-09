@@ -17,6 +17,8 @@ final class Session {
     var profile: Profile?
     var errorMessage: String?
     var isBusy = false
+    /// An invite code from a link like fade://join/ABCD1234, waiting to be used once you're signed in.
+    var pendingJoinCode: String?
 
     // MARK: Launch
 
@@ -31,6 +33,17 @@ final class Session {
             await loadProfile()
         } catch {
             state = .signedOut
+        }
+    }
+
+    // MARK: Invite links
+
+    /// Understands fade://join/CODE (works once the URL scheme is switched on — see SETUP/TESTING notes).
+    func handle(url: URL) {
+        guard url.scheme?.lowercased() == "fade", url.host?.lowercased() == "join" else { return }
+        let code = url.lastPathComponent.trimmingCharacters(in: .whitespaces).uppercased()
+        if code.count >= 4, code.count <= 16, code.allSatisfy({ $0.isLetter || $0.isNumber }) {
+            pendingJoinCode = code
         }
     }
 
@@ -171,6 +184,19 @@ final class Session {
             ("target_not_member", "That person isn't an active member of this group."),
             ("buyback_requires_vote", "This group uses buyback votes (coming in a later update)."),
             ("buyback_limit_reached", "You've used this week's buybacks."),
+            ("user_not_found", "No one with that username — or you can't add them."),
+            ("request_pending", "You already sent them a request."),
+            ("already_friends", "You're already friends."),
+            ("too_many_requests", "You have too many requests waiting. Cancel a few first."),
+            ("request_not_found", "That request isn't there any more."),
+            ("content_not_allowed", "That text isn't allowed in Fade. Please rephrase it."),
+            ("invalid_comment", "Comments must be 1–500 characters."),
+            ("slow_down", "You're commenting too fast. Wait a minute and try again."),
+            ("item_not_found", "That post isn't available any more."),
+            ("invalid_emoji", "That reaction isn't available."),
+            ("invalid_report", "That can't be reported."),
+            ("report_target_not_found", "That can't be reported."),
+            ("invalid_target", "That person can't be selected."),
             ("vote_already_open", "A vote like that is already open — go vote on it."),
             ("vote_closed", "That vote has closed."),
             ("vote_not_found", "That vote isn't available."),
