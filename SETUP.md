@@ -169,7 +169,7 @@ The Supabase URL and publishable key are already in the app. Until your Apple ac
 
 ## 1. Supabase
 1. **SQL Editor → New query**: paste all of `supabase/migrations/20261008000002_usernames.sql` and **Run**. (Milestone 1's file is already applied.)
-2. **Authentication → Sign In / Providers → Apple**: switch **Enable Sign in with Apple** on. In **Client IDs** type `com.dschermer.fade`. Leave the secret/key fields empty (they're only for websites). **Save**.
+2. **Authentication → Sign In / Providers → Apple**: switch **Enable Sign in with Apple** on. In **Client IDs** type `com.dschermer.fadeapp`. Leave the secret/key fields empty (they're only for websites). **Save**.
 3. **Authentication → Sign In / Providers → Email**: keep it enabled for now but switch **Confirm email** OFF. This is only so debug test accounts work. **Before TestFlight we turn Email OFF completely** (Fade's only real login is Apple).
 4. **Project Settings → API** (or **API Keys**): copy the **Project URL** and the **publishable** key (starts with `sb_publishable_…`, or the older `anon` key). Do **not** copy the secret / service_role key anywhere.
 

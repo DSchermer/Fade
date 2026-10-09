@@ -190,4 +190,4 @@ APNs via an Edge Function (token-based `.p8` key — requires the paid Apple Dev
 6. Leaving with unsettled bets — **blocked**.
 7. Friends: username requests + shared-group suggestions — **yes**.
 8. Moderation via Supabase dashboard + optional email alert — **yes**.
-9. App name **Fade**. No domain yet. **Bundle ID: `com.dschermer.fade`** (proposed from the GitHub handle; changeable until the first TestFlight upload). Because there's no domain, v1 development uses a **custom URL scheme** `fade://join/CODE` plus manual code entry for invites. Real universal links (`https://…/join/CODE`) need a domain you own and are moved to Milestone 10/12; a free GitHub Pages site can host the privacy policy in the meantime.
+9. App name **Fade**. No domain yet. **Bundle ID: `com.dschermer.fadeapp`** (proposed from the GitHub handle; changeable until the first TestFlight upload). Because there's no domain, v1 development uses a **custom URL scheme** `fade://join/CODE` plus manual code entry for invites. Real universal links (`https://…/join/CODE`) need a domain you own and are moved to Milestone 10/12; a free GitHub Pages site can host the privacy policy in the meantime.
