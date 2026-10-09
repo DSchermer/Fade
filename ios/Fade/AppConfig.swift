@@ -12,10 +12,10 @@ enum AppConfig {
     static let privacyURL = "https://dschermer.github.io/Fade/privacy.html"
     static let termsURL = "https://dschermer.github.io/Fade/terms.html"
 
-    /// Turn this ON (true) once the paid Apple account is set up and the `apple-link` / `apple-delete-account` Edge Functions are deployed
-    /// (docs/APPLE_ACCOUNT_STEPS.md). Apple requires that deleting an account also disconnects Sign in with Apple. While it is off, deleting
-    /// an account works but does not tell Apple — fine for testing, NOT acceptable for the App Store.
-    static let appleRevocationEnabled = false
+    /// ON now that the paid Apple account is set up and the `apple-link` / `apple-delete-account` Edge Functions are deployed
+    /// (docs/APPLE_ACCOUNT_STEPS.md). Apple requires that deleting an account also disconnects Sign in with Apple. If it were off, deleting
+    /// an account would work but would not tell Apple — NOT acceptable for the App Store. Needs the Edge Functions to be deployed.
+    static let appleRevocationEnabled = true
 
     static var isConfigured: Bool {
         !supabasePublishableKey.hasPrefix("YOUR-") && !(supabaseURL.host ?? "").hasPrefix("YOUR-")
