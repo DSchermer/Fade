@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Supabase
 
 /// The group feed, reactions, comments, and the safety tools (report / block / mute).

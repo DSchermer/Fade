@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Supabase
 
 /// Friends: requests by username, suggestions from shared groups, and the friends leaderboard.

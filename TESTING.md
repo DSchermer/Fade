@@ -17,7 +17,8 @@ Your starting point: migrations **0001–0008 are already applied** (you ran `le
 All the money rules, votes, resets, the feed, reports/blocks, friends, notification queue, account deletion and the new permission lockdown are covered by **~20 SQL test files plus 11 "everybody at once" race tests** (settle twice, vote at once, leave while someone takes your offer, delete an account while someone takes its offer, …). Every test passed on the last full run, and I broke the code on purpose in about 30 places to check the tests notice (they did, after I fixed gaps in two). 
 
 ### What I could NOT test
-- **Any Swift code.** There is no Xcode in my environment. M8–M12 screens have never been compiled. **Expect a few red errors on your first build.** Copy them to me exactly. This is normal and usually quick to fix.
+- **The SwiftUI screens.** There is no Xcode in my environment, so the M8–M12 *screens* (the files ending in `View.swift`, plus `PushManager.swift`) have never been compiled. **Expect a few red errors on your first build.** Copy them to me exactly. This is normal and usually quick to fix.
+  - What I *could* do: I installed a Swift compiler on my side and (a) compiled all the non-screen Swift (stores, models, `Session`) against the real Supabase library with no errors, (b) ran your unit tests (7 pass), (c) syntax-checked every Swift file, and (d) built a "contract test" (`supabase/tests/contract/run.sh`): it fills a scratch database through the real server functions, saves the JSON each screen would receive, and decodes it with the app's own model types. All 23 decodes pass for the situations in that test database (settled, voided and pending bets, buybacks, votes, friends, comments, …), which catches renamed columns, wrong types and unexpected nulls. An independent review of the screens for compile errors was also done (results in the commit history / CLAUDE.md).
 - Anything that needs the **paid Apple account** (see §10).
 
 ---

@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Supabase
 
 /// Loads and changes the groups you belong to. All coin changes happen on the server.

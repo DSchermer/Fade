@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Supabase
 
 /// Loads the games and markets mirrored from Polymarket. Read-only.

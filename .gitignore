@@ -11,3 +11,7 @@ ios/Fade.xcodeproj/
 *.p8
 supabase/.env
 supabase/.temp/
+
+# Swift build output from supabase/tests/contract
+supabase/tests/contract/.build/
+supabase/tests/contract/Package.resolved

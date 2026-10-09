@@ -221,7 +221,7 @@ final class Session {
             ("not_group_owner", "Only the group's owner can do that."),
             ("invalid_transfer", "Pick another member to hand ownership to."),
             ("target_not_member", "That person isn't an active member of this group."),
-            ("buyback_requires_vote", "This group uses buyback votes (coming in a later update)."),
+            ("buyback_requires_vote", "This group decides buybacks by vote. Use \"Ask the group for a buyback\"."),
             ("buyback_limit_reached", "You've used this week's buybacks."),
             ("user_not_found", "No one with that username — or you can't add them."),
             ("request_pending", "You already sent them a request."),

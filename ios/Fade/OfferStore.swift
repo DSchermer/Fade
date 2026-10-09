@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import Supabase
 
 /// Reads offers and bets, and sends post / take / cancel requests. The SERVER moves all coins.
