@@ -1,3 +1,5 @@
+> **Start with `TESTING.md`** — it has the current, complete test plan (Milestones 8–13). The sections below are the older per-milestone notes (newest first).
+
 # Setup — Leaving a group + handing over ownership (adds to Milestone 7)
 
 ## 1. Supabase
