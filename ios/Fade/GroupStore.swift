@@ -92,4 +92,62 @@ final class GroupStore {
             return Session.describe(error)
         }
     }
+
+    // MARK: Leaderboard, buybacks, score
+
+    func leaderboard(groupID: UUID) async -> [LeaderboardRow] {
+        do {
+            let rows: [LeaderboardRow] = try await supabase.from("group_leaderboard").select()
+                .eq("group_id", value: groupID)
+                .execute()
+                .value
+            return rows
+        } catch {
+            errorMessage = "Couldn't load the leaderboard: \(Session.describe(error))"
+            return []
+        }
+    }
+
+    func buybackHistory(groupID: UUID) async -> [BuybackRow] {
+        do {
+            let rows: [BuybackRow] = try await supabase.from("buyback_listing").select()
+                .eq("group_id", value: groupID)
+                .order("created_at", ascending: false)
+                .limit(30)
+                .execute()
+                .value
+            return rows
+        } catch {
+            errorMessage = "Couldn't load buybacks: \(Session.describe(error))"
+            return []
+        }
+    }
+
+    func buybackStatus(groupID: UUID) async -> BuybackStatus? {
+        do {
+            let rows: [BuybackStatus] = try await supabase.rpc("buyback_status", params: ["p_group": groupID.uuidString])
+                .execute()
+                .value
+            return rows.first
+        } catch {
+            errorMessage = "Couldn't check buyback status: \(Session.describe(error))"
+            return nil
+        }
+    }
+
+    /// Returns an error message to show, or nil on success.
+    func claimBuyback(groupID: UUID, userID: UUID) async -> String? {
+        do {
+            _ = try await supabase.rpc("claim_buyback", params: ["p_group": groupID.uuidString]).execute()
+            await load(userID: userID)
+            return nil
+        } catch {
+            return Session.describe(error)
+        }
+    }
+
+    func myScore() async -> MyScore? {
+        let rows: [MyScore]? = try? await supabase.from("my_score").select().execute().value
+        return rows?.first
+    }
 }

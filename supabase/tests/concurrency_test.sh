@@ -110,6 +110,30 @@ healthy || { echo "FAIL: integrity broken after race 4"; q -c "select * from che
 [ "$(q -c "select count(*) from offers where market_id = '$MARKET' and status = 'open'")" = 0 ] || { echo "FAIL: open offers left on a finished market"; exit 1; }
 echo "   ok: $PENDING bets paid exactly once between 12 callers; $OPEN_LEFT leftover open offer(s) returned"
 
+echo "5) a broke member fires 10 buyback claims at the same moment…"
+BROKE=$(uid 61)
+q -c "do \$\$ declare t uuid := gen_random_uuid(); a bigint; begin
+        select available into a from group_members where group_id = '$GROUP' and user_id = '$BROKE';
+        perform ledger_post(t, '$GROUP', '$BROKE', 'available', -a, 'escrow_release');
+        perform ledger_post(t, '$GROUP', '$MAKER', 'available',  a, 'escrow_release');
+      end \$\$;" >/dev/null
+BB_BEFORE=$(q -c "select buyback_count from group_members where group_id = '$GROUP' and user_id = '$BROKE'")
+# A holder keeps this member's balance row locked for 2 seconds, so all 10 claims line up behind it and are
+# released at the same instant (a plain loop of processes is usually too slow to overlap at all).
+( q -c "begin; select 1 from group_members where group_id = '$GROUP' and user_id = '$BROKE' for update; select pg_sleep(2); commit;" >/dev/null ) &
+sleep 0.7
+for k in $(seq 1 10); do
+  ( o=$(q -c "select set_config('request.jwt.claim.sub', '$BROKE', false); select claim_buyback('$GROUP');" 2>&1) || true
+    m=$(printf '%s\n' "$o" | grep -m1 '^ERROR' || true)
+    if [ -n "$m" ]; then echo "${m#*ERROR:  }" >> "$out/race5"; else echo ok >> "$out/race5"; fi ) &
+done; wait
+ok=$(count race5 ok); again=$(count race5 not_busted)
+[ "$ok" = 1 ] && [ "$again" = 9 ] || { echo "FAIL: expected 1 ok + 9 not_busted, got $ok ok / $again not_busted"; sort "$out/race5" | uniq -c; exit 1; }
+[ "$(q -c "select buyback_count - $BB_BEFORE from group_members where group_id = '$GROUP' and user_id = '$BROKE'")" = 1 ] || { echo "FAIL: buyback counted more than once"; exit 1; }
+[ "$(q -c "select count(*) from buybacks where group_id = '$GROUP' and user_id = '$BROKE'")" = 1 ] || { echo "FAIL: more than one buyback record"; exit 1; }
+healthy || { echo "FAIL: integrity broken after race 5"; q -c "select * from check_ledger_integrity()" | head; exit 1; }
+echo "   ok: exactly one buyback paid, nine turned away"
+
 total=$(q -c "select sum(available + escrow) from group_members where group_id = '$GROUP'")
 expected=$(q -c "select sum(delta) from ledger where group_id = '$GROUP' and kind in ('grant', 'buyback')")
 [ "$total" = "$expected" ] || { echo "FAIL: coins created or destroyed ($total vs $expected)"; exit 1; }

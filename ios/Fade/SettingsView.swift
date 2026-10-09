@@ -5,12 +5,16 @@ struct SettingsView: View {
     @Environment(GroupStore.self) private var groups
     @Environment(\.dismiss) private var dismiss
     @State private var showLegal = false
+    @State private var score: MyScore?
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Account") {
                     LabeledContent("Username", value: "@\(session.profile?.username ?? "")")
+                    if let score {
+                        LabeledContent("Lifetime score", value: "\(score.score.signedCoins) coins")
+                    }
                     LabeledContent("Record (won–lost)",
                                    value: "\(session.profile?.lifetimeWins ?? 0)–\(session.profile?.lifetimeLosses ?? 0)")
                 }
@@ -45,7 +49,10 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .task { await session.refreshProfile() }
+            .task {
+                await session.refreshProfile()
+                score = await groups.myScore()
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }

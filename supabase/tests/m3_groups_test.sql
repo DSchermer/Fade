@@ -115,7 +115,7 @@ reset role;
 -- ── Returning after leaving: back in with 0 coins and NO new grant ──
 -- (simulate the future leave_group: burn the balance and mark left)
 select ledger_post(gen_random_uuid(), (select id from t_ids where name = 'g1'), '00000000-0000-0000-0000-0000000000b1', 'available', -10000, 'leave_burn');
-update group_members set status = 'left' where user_id = '00000000-0000-0000-0000-0000000000b1';
+update group_members set status = 'left', granted = 0 where user_id = '00000000-0000-0000-0000-0000000000b1';   -- (what the real leave will do: balance burned, profit baseline cleared)
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000b1', true);
 do $$ begin assert (select count(*) from groups) = 0, 'a member who left no longer sees the group'; end $$;

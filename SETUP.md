@@ -1,3 +1,34 @@
+# Setup — Milestone 7 (leaderboards, buybacks, global score)
+
+## 1. Supabase
+`pbcopy < ../supabase/migrations/20261008000007_buybacks_leaderboard.sql` → new query → paste → Run. (No scheduled job this time.)
+Check: `select * from check_ledger_integrity();` and `select * from check_betting_integrity();` — **no rows**.
+
+## 2. App
+`git pull`, `cd ios && xcodegen`, Run.
+
+## What to tap to test Milestone 7
+**Leaderboard**
+1. Open a group → **Leaderboard**. You should see every member ranked. Toggle **Net profit** / **Raw balance**.
+   - *Net profit* = what you hold now − your starting coins − buyback coins. Winners are green (+), losers red (−). Everyone's net profits add up to 0.
+   - *Raw balance* shows what each person holds, with "(N buybacks)" next to their name if they bought back.
+
+**Buyback (unlimited group — the one you made first)**
+2. Get one account broke. Easiest: make a bet, then pretend you lost it with `dev_force_result.sql`, or as the loser post an offer for ALL your available coins, let the other account take it all, then force the result so you lose. (You are only "broke" when available coins **and** coins tied up in bets and offers are all zero.)
+3. As the broke account, open the group: an orange **You're out of coins** box appears with **Buy back in for 100 coins**. Tap it → confirm. Your balance becomes 100 again.
+4. **Leaderboard**: you now show "1 buyback · 100 coins" and your **net profit is still negative** — a buyback does not wipe out a loss.
+5. At the bottom of the Leaderboard, **Buyback history** lists who bought back and when (everyone in the group can see it).
+6. You cannot buy back while you still have coins (the box is simply not shown).
+
+**Weekly limit** — create a group with *Limited per week* (say 1 per week); go broke twice. The second time the box says you've used your buyback for the week and shows when the next one is available.
+
+**By vote groups** — a broke member sees "This group lets members vote on buybacks. Voting arrives in a later update." (Milestone 8.)
+
+**Global score**
+7. Gear → Settings: **Lifetime score** (net profit added up across ALL your groups; buybacks count against you) and **Record (won–lost)**.
+
+---
+
 # Setup — Milestone 6 (settling bets)
 
 ## 1. Supabase (copy each file with `pbcopy`, paste into a new query, Run)

@@ -22,6 +22,8 @@ struct GroupDetailView: View {
                 }
             }
 
+            BuybackSection(groupID: group.id, balance: live.balance)
+
             Section {
                 HStack {
                     Text(group.inviteCode)
@@ -57,6 +59,11 @@ struct GroupDetailView: View {
                     MyBetsView(groupID: group.id)
                 } label: {
                     Label("My bets", systemImage: "ticket")
+                }
+                NavigationLink {
+                    LeaderboardView(groupID: group.id, startingBalance: group.startingBalance)
+                } label: {
+                    Label("Leaderboard", systemImage: "list.number")
                 }
             }
 

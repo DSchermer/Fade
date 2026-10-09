@@ -10,8 +10,8 @@ Each milestone builds and runs, ends with exact steps for you to test in the sim
 | 3 ✅ | **Groups.** Create (balance/buyback settings), join by code, member list, starting-balance grant, per-group balance. | — | Create a group, join from a second dev user. (Invite links that open the app directly arrive in M10; M3 uses the code.) |
 | 4 ✅ | **Polymarket ingest.** Discover/refresh jobs, `markets` table, Markets browser with league filter and game detail. Saved-JSON tests. | Polymarket terms OK | See real upcoming NBA/NFL/MLB/NHL games |
 | 5 ✅ | **Offers & takes.** `post_offer`, `take_offer`, `cancel_offer`, auto-cancel at start, confirm sheets with risk/payout, odds-format conversion, My Bets. Concurrency + fuzz tests. | — | Post an offer, take part of it as another user, cancel the rest, balances change |
-| 6 🚧 | **(Built — awaiting your test; see SETUP.md)** **Settlement.** Finality rule, idempotent `settle_market`, void handling, status labels, W-L. Tests with resolved/50-50/proposed JSON. | — | A finished game settles; balances and W-L update |
-| 7 | **Leaderboard, buybacks, global score.** Net-profit and raw-balance views, unlimited/weekly buybacks, profile score. | — | Go broke, buy back, see ranking |
+| 6 ✅ | **Settlement.** Finality rule, idempotent `settle_market`, void handling, status labels, W-L. Tests with resolved/50-50/proposed JSON. | — | A finished game settles; balances and W-L update |
+| 7 🚧 | **(Built — awaiting your test; see SETUP.md)** **Leaderboard, buybacks, global score.** Net-profit and raw-balance views, unlimited/weekly buybacks, profile score. | — | Go broke, buy back, see ranking |
 | 8 | **Votes.** Reset and buyback votes, tally, banner, reset transaction, season history. | — | Call and pass a reset; see history |
 | 9 | **Feed & UGC safety.** Feed, reactions, comments, report/block/mute, word filter, moderation view for you. | — | Comment, react, report, block |
 | 10 | **Friends.** Requests, suggestions, friends leaderboard. Invite links as universal links. | Domain (≈$12/yr) for universal links | Add a friend; open an invite link |
