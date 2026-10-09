@@ -237,19 +237,19 @@ select jobname, active from cron.job order by jobname;                          
 
 ---
 
-## 12. Cannot be tested until the paid Apple account is active
+## 12. Needs the paid Apple account (status after 2026-10-09)
 
-These are built but **unproven**. The exact steps are in `docs/APPLE_ACCOUNT_STEPS.md`; the checks for each are below.
+The exact steps are in `docs/APPLE_ACCOUNT_STEPS.md`.
 
-| Feature | After setup, check on a real iPhone |
+| Feature | Status |
 |---|---|
-| Sign in with Apple (button) | Tap **Sign in with Apple** → pick username → works; sign out/in returns to the same account |
-| Apple token capture (`apple-link` function) | After a fresh Apple sign‑in: `select count(*) from apple_tokens;` → 1 (needs `appleRevocationEnabled = true`) |
-| Account deletion + Apple revocation (`apple-delete-account`) | Delete the account; then iPhone Settings → [your name] → Sign in with Apple → **Fade should no longer be listed** |
-| Push notifications (`send-push` + `schedule_push.sql`) | Allow notifications; have another account post an offer; the push arrives within ~1 minute; `notification_outbox.sent_at` is filled |
-| Sign‑out removes the push token | After signing out, no more pushes for that account arrive on the phone |
-| Invite link `fade://join/CODE` | Needs the URL scheme added (steps §10 in the Apple guide) |
-| TestFlight / App Store | `docs/APPLE_ACCOUNT_STEPS.md` §12–13 |
+| Sign in with Apple (button) | ✅ **Verified on a real iPhone** (2026-10-09) |
+| Apple token capture (`apple-link`) | ✅ Verified: `apple_tokens` went to 1 after signing in |
+| Account deletion + Apple disconnect (`apple-delete-account`) | ✅ Verified: account deleted, token row removed, the entry disappeared from iPhone Settings → Sign in with Apple |
+| Push notifications (`send-push` + `schedule_push.sql`) | ✅ Verified with a test message (queued in SQL, arrived on the phone). ⬜ Still to try: a *real* event, e.g. another account posts an offer in your group |
+| Sign‑out removes the push token | ⬜ After signing out, queue a test message: it must NOT arrive |
+| Invite link `fade://join/CODE` | ⬜ Needs the URL scheme added (steps §10 in the Apple guide) |
+| TestFlight / App Store | ⬜ `docs/APPLE_ACCOUNT_STEPS.md` §12–13 |
 
 ## 13. Decisions I made while you were away — veto any of these
 
