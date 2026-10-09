@@ -1,10 +1,10 @@
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const APPLE_KEY_ID = Deno.env.get("APPLE_KEY_ID")!;
-const APPLE_TEAM_ID = Deno.env.get("APPLE_TEAM_ID")!;
-const APPLE_PRIVATE_KEY = Deno.env.get("APPLE_PRIVATE_KEY")!; // the whole .p8 file for the Sign in with Apple key
-const APPLE_BUNDLE_ID = Deno.env.get("APPLE_BUNDLE_ID") ?? "com.dschermer.fade";
+const APPLE_KEY_ID = (Deno.env.get("APPLE_KEY_ID") ?? "").trim();
+const APPLE_TEAM_ID = (Deno.env.get("APPLE_TEAM_ID") ?? "").trim();
+const APPLE_PRIVATE_KEY = (Deno.env.get("APPLE_PRIVATE_KEY") ?? "").trim(); // the whole .p8 file for the Sign in with Apple key
+const APPLE_BUNDLE_ID = (Deno.env.get("APPLE_BUNDLE_ID") ?? "com.dschermer.fade").trim();
 
 /** Our own database and sign-in service are called with plain web requests. The service key can be the older long `eyJ…` kind or
  *  the newer short `sb_…` kind: the newer kind goes in the `apikey` header only. */
@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
   const body = await res.json().catch(() => ({}));
   if (!res.ok || !body.refresh_token) {
     console.error("apple token exchange refused:", res.status, JSON.stringify({ error: body.error, description: body.error_description }));   // Apple's reason, never a secret
+    console.error("credentials used (none of these is secret):", JSON.stringify({ key_id: APPLE_KEY_ID, team_id: APPLE_TEAM_ID, client_id: APPLE_BUNDLE_ID, private_key_characters: APPLE_PRIVATE_KEY.length }));
     return json({ error: "apple refused", detail: body.error ?? res.status }, 502);
   }
 
