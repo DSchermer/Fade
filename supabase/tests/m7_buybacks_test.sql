@@ -211,6 +211,9 @@ do $$ declare s record; live bigint; begin
 end $$;
 reset role;
 
+-- (that closed profit was only a stand-in for an old season; real ones are recorded together with the leaver's books)
+update profiles set lifetime_closed_profit = 0 where id = pg_temp.u('a');
+
 -- ───────── Zero-sum is enforced by the integrity check ─────────
 do $$ begin
   assert pg_temp.healthy(), 'healthy at the end';

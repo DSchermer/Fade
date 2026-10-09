@@ -2,11 +2,16 @@ import SwiftUI
 import UIKit
 
 struct GroupDetailView: View {
+    @Environment(Session.self) private var session
     @Environment(GroupStore.self) private var groups
+    @Environment(\.dismiss) private var dismiss
     let membership: GroupMembership   // as it was when this screen opened
 
-    @State private var members: [GroupMember] = []
+    @State private var members: [LeaderboardRow] = []
     @State private var copied = false
+    @State private var showLeaveConfirm = false
+    @State private var memberToPromote: LeaderboardRow?
+    @State private var actionError: String?
 
     private var group: GroupInfo { membership.group }
     /// Always the latest balance (it changes whenever you post, take or cancel).
@@ -67,7 +72,7 @@ struct GroupDetailView: View {
                 }
             }
 
-            Section("Members (\(members.count))") {
+            Section {
                 ForEach(members) { member in
                     HStack {
                         Text(member.displayName)
@@ -77,6 +82,22 @@ struct GroupDetailView: View {
                         Spacer()
                         Text("\(Coins.format(member.balance))").monospacedDigit()
                     }
+                    .swipeActions(edge: .trailing) {
+                        if canHandOver(to: member) {
+                            Button("Make owner") { memberToPromote = member }.tint(.orange)
+                        }
+                    }
+                    .contextMenu {
+                        if canHandOver(to: member) {
+                            Button("Make owner", systemImage: "crown") { memberToPromote = member }
+                        }
+                    }
+                }
+            } header: {
+                Text("Members (\(members.count))")
+            } footer: {
+                if live.role == "owner" && members.count > 1 {
+                    Text("You're the owner. Swipe a member left (or long-press) to hand ownership to them.")
                 }
             }
 
@@ -86,12 +107,68 @@ struct GroupDetailView: View {
             }
 
             Section {
+                Button("Leave group", role: .destructive) { showLeaveConfirm = true }
+                if live.role == "owner" && members.count > 1 {
+                    Text("You're the owner. Make another member the owner before you can leave.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                if let actionError {
+                    Text(actionError).font(.footnote).foregroundStyle(.red)
+                }
+            } footer: {
+                Text("Leaving cancels and refunds your open offers, and the coins you hold here are gone. Your profit or loss stays in your lifetime score. You can't leave with unsettled bets. If you rejoin later you start with 0 coins.")
+            }
+
+            Section {
                 NoMoneyNotice()
             }
         }
         .navigationTitle(group.name)
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("Leave \(group.name)?", isPresented: $showLeaveConfirm, titleVisibility: .visible) {
+            Button("Leave group", role: .destructive) { Task { await leave() } }
+            Button("Stay", role: .cancel) {}
+        } message: {
+            Text("You hold \(Coins.format(live.balance)) coins here. They'll be gone, and your net profit of \(netProfitText) stays in your lifetime score.")
+        }
+        .confirmationDialog(
+            "Make \(memberToPromote?.displayName ?? "them") the owner?",
+            isPresented: Binding(get: { memberToPromote != nil }, set: { if !$0 { memberToPromote = nil } }),
+            titleVisibility: .visible,
+            presenting: memberToPromote
+        ) { member in
+            Button("Make owner") { Task { await promote(member) } }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("You'll become an ordinary member. Only one person can own a group.")
+        }
         .task { members = await groups.members(of: group.id) }
         .refreshable { members = await groups.members(of: group.id) }
+    }
+
+    // MARK: Leaving and ownership
+
+    private var myNetProfit: Int64? {
+        members.first { $0.userId == session.profile?.id }?.netProfit
+    }
+
+    private var netProfitText: String {
+        myNetProfit.map { "\($0.signedCoins) coins" } ?? "so far"
+    }
+
+    private func canHandOver(to member: LeaderboardRow) -> Bool {
+        live.role == "owner" && member.userId != session.profile?.id
+    }
+
+    private func leave() async {
+        guard let userID = session.profile?.id else { return }
+        actionError = await groups.leaveGroup(groupID: group.id, userID: userID)
+        if actionError == nil { dismiss() }
+    }
+
+    private func promote(_ member: LeaderboardRow) async {
+        guard let userID = session.profile?.id else { return }
+        actionError = await groups.transferOwnership(groupID: group.id, to: member.userId, userID: userID)
+        members = await groups.members(of: group.id)
     }
 }

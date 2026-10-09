@@ -1,3 +1,24 @@
+# Setup — Leaving a group + handing over ownership (adds to Milestone 7)
+
+## 1. Supabase
+`pbcopy < ../supabase/migrations/20261008000008_leave_group.sql` → new query → paste → Run.
+Check: `select * from check_ledger_integrity();` and `select * from check_betting_integrity();` — **no rows**.
+
+## 2. App
+`git pull`, `cd ios && xcodegen`, Run.
+
+## What to tap to test
+You need a group with at least 3 accounts. (Use test1 as the owner, and join with the other accounts using the invite code.)
+1. As the **owner**, open the group and scroll to the bottom: **Leave group**. Tap it → confirm. You should see the message *"You own this group. Make another member the owner first…"* and the group stays.
+2. Still as owner: **swipe a member's row to the left** (or long-press it) → **Make owner** → confirm. That member now shows "owner" and you are an ordinary member.
+3. Now tap **Leave group** → confirm. The group disappears from your list. In **Settings**, your **Lifetime score** still includes whatever you won or lost in that group.
+4. As another member with an **unsettled bet** in the group, try **Leave group**: you get *"You still have unsettled bets…"* and nothing changes. After the bet is settled (use `dev_force_result.sql`), you can leave.
+5. As a member with an **open offer** (not yet taken): leave → the offer is cancelled and refunded automatically; you're out.
+6. **Rejoin** with the invite code: you come back with **0 coins** (and the orange "You're out of coins" box lets you buy back in under the group's buyback rules).
+7. Leaderboard: leavers are not listed. In Supabase run the two integrity checks again: still no rows.
+
+---
+
 # Setup — Milestone 7 (leaderboards, buybacks, global score)
 
 ## 1. Supabase

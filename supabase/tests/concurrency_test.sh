@@ -134,7 +134,30 @@ ok=$(count race5 ok); again=$(count race5 not_busted)
 healthy || { echo "FAIL: integrity broken after race 5"; q -c "select * from check_ledger_integrity()" | head; exit 1; }
 echo "   ok: exactly one buyback paid, nine turned away"
 
+echo "6) someone leaves the group at the exact moment their offer is taken (12 rounds)…"
+MARKET2=$(q -c "select id from markets where market_type = 'spreads' order by id limit 1")
+left_won=0; take_won=0
+for r in $(seq 1 12); do
+  LEAVER=$(uid $((10 + r))); TAKER2=$(uid $((40 + r)))
+  O=$(q -c "select set_config('request.jwt.claim.sub', '$LEAVER', false); select post_offer('$GROUP', '$MARKET2', 0, 50, 5);" | tail -1)
+  # hold the offer row for a moment so both requests line up behind it and are released together
+  ( q -c "begin; select 1 from offers where id = '$O' for update; select pg_sleep(0.8); commit;" >/dev/null ) &
+  sleep 0.3
+  ( o=$(q -c "select set_config('request.jwt.claim.sub', '$TAKER2', false); select take_offer('$O', 5);" 2>&1) || true
+    if printf '%s\n' "$o" | grep -q '^ERROR'; then echo take_lost >> "$out/race6"; else echo take_won >> "$out/race6"; fi ) &
+  ( o=$(q -c "select set_config('request.jwt.claim.sub', '$LEAVER', false); select leave_group('$GROUP');" 2>&1) || true
+    if printf '%s\n' "$o" | grep -q '^ERROR'; then echo leave_lost >> "$out/race6"; else echo leave_won >> "$out/race6"; fi ) &
+  wait
+  status=$(q -c "select status from group_members where group_id = '$GROUP' and user_id = '$LEAVER'")
+  bets=$(q -c "select count(*) from bets where offer_id = '$O'")
+  if [ "$status" = left ] && [ "$bets" != 0 ]; then echo "FAIL (round $r): the member LEFT while a bet on their offer exists"; exit 1; fi
+  if [ "$status" = active ] && [ "$bets" = 0 ]; then echo "FAIL (round $r): the member stayed but nobody got the bet and it was not cancelled"; exit 1; fi
+  if [ "$status" = left ]; then left_won=$((left_won + 1)); else take_won=$((take_won + 1)); fi
+done
+healthy || { echo "FAIL: integrity broken after race 6"; q -c "select * from check_ledger_integrity() union all select * from check_betting_integrity()" | head; exit 1; }
+echo "   ok: the leaver won $left_won rounds, the taker won $take_won — never both, books balanced"
+
 total=$(q -c "select sum(available + escrow) from group_members where group_id = '$GROUP'")
-expected=$(q -c "select sum(delta) from ledger where group_id = '$GROUP' and kind in ('grant', 'buyback')")
+expected=$(q -c "select sum(delta) from ledger where group_id = '$GROUP' and kind in ('grant', 'buyback', 'season_burn', 'leave_burn', 'delete_burn')")
 [ "$total" = "$expected" ] || { echo "FAIL: coins created or destroyed ($total vs $expected)"; exit 1; }
-echo "All concurrency tests passed. (group holds exactly the $expected hundredths it was given)"
+echo "All concurrency tests passed. (group holds exactly the $expected hundredths: everything granted or bought back, minus what leavers burned)"

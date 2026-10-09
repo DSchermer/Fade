@@ -32,19 +32,9 @@ final class GroupStore {
         }
     }
 
-    func members(of groupID: UUID) async -> [GroupMember] {
-        do {
-            let rows: [GroupMember] = try await supabase.from("group_members")
-                .select("user_id, role, available, escrow, buyback_count, profiles(username)")
-                .eq("group_id", value: groupID)
-                .eq("status", value: "active")
-                .execute()
-                .value
-            return rows.sorted { $0.balance > $1.balance }
-        } catch {
-            errorMessage = "Couldn't load members: \(Session.describe(error))"
-            return []
-        }
+    func members(of groupID: UUID) async -> [LeaderboardRow] {
+        let rows = await leaderboard(groupID: groupID)
+        return rows.sorted { $0.balance > $1.balance }
     }
 
     private struct CreateParams: Encodable {
@@ -149,5 +139,39 @@ final class GroupStore {
     func myScore() async -> MyScore? {
         let rows: [MyScore]? = try? await supabase.from("my_score").select().execute().value
         return rows?.first
+    }
+
+    // MARK: Leaving and ownership
+
+    /// Returns an error message to show, or nil on success.
+    func leaveGroup(groupID: UUID, userID: UUID) async -> String? {
+        do {
+            _ = try await supabase.rpc("leave_group", params: ["p_group": groupID.uuidString]).execute()
+            await load(userID: userID)
+            return nil
+        } catch {
+            return Session.describe(error)
+        }
+    }
+
+    private struct TransferParams: Encodable {
+        let group: UUID
+        let newOwner: UUID
+
+        enum CodingKeys: String, CodingKey {
+            case group = "p_group"
+            case newOwner = "p_new_owner"
+        }
+    }
+
+    func transferOwnership(groupID: UUID, to newOwner: UUID, userID: UUID) async -> String? {
+        do {
+            _ = try await supabase.rpc("transfer_ownership",
+                                       params: TransferParams(group: groupID, newOwner: newOwner)).execute()
+            await load(userID: userID)
+            return nil
+        } catch {
+            return Session.describe(error)
+        }
     }
 }

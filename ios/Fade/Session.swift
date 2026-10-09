@@ -164,6 +164,14 @@ final class Session {
             ("cannot_take_own_offer", "You can't take your own offer."),
             ("not_offer_maker", "Only the person who made an offer can cancel it."),
             ("not_a_member", "You're not a member of that group."),
+            ("owner_must_transfer", "You own this group. Make another member the owner first, then you can leave."),
+            ("has_unsettled_bets", "You still have unsettled bets in this group. You can leave once they're settled."),
+            ("not_group_owner", "Only the group's owner can do that."),
+            ("invalid_transfer", "Pick another member to hand ownership to."),
+            ("target_not_member", "That person isn't an active member of this group."),
+            ("buyback_requires_vote", "This group uses buyback votes (coming in a later update)."),
+            ("buyback_limit_reached", "You've used this week's buybacks."),
+            ("not_busted", "You can only buy back in when you have no coins left (including coins in bets and offers)."),
         ]
         for (code, message) in known where raw.contains(code) { return message }
         return raw

@@ -59,27 +59,3 @@ struct GroupMembership: Decodable, Identifiable {
     var id: UUID { group.id }
     var balance: Int64 { available + escrow }
 }
-
-struct ProfileName: Decodable {
-    let username: String?
-}
-
-/// One person in a group's member list.
-struct GroupMember: Decodable, Identifiable {
-    let userId: UUID
-    let role: String
-    let available: Int64
-    let escrow: Int64
-    let buybackCount: Int
-    let profile: ProfileName?
-
-    enum CodingKeys: String, CodingKey {
-        case role, available, escrow, profile = "profiles"
-        case userId = "user_id"
-        case buybackCount = "buyback_count"
-    }
-
-    var id: UUID { userId }
-    var balance: Int64 { available + escrow }
-    var displayName: String { "@" + (profile?.username ?? "unknown") }
-}
