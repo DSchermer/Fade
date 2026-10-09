@@ -27,4 +27,16 @@ Each milestone builds and runs, ends with exact steps for you to test in the sim
 
 **Why this order:** the money logic (M1, M5, M6) comes first and is heavily tested before features sit on top. The simulator-only path works through M5; only M2 and M11 need real Apple services.
 
+## UI redesign (after Milestone 13)
+
+The design lives in the "Fade App Design" canvas (31 boards, link in CLAUDE.md). It is built in steps; each step builds and runs, ends with what to tap, then a commit. Screens not yet converted keep working in their old look.
+
+| # | Step | What changes | Server change |
+|---|---|---|---|
+| R1 🚧 | **Look + shell + Feed.** Colors/fonts/components, the 5-tab floating bar, the combined Feed with group chips, post screen with comments, the new report sheet. | Feed tab is new; the other tabs still open the old screens (Groups tab = old home). | Migration 0015 (group name etc. on the feed view) |
+| R2 | **Games.** Games tab with Spread / Total / Win best-price cells, order-book sheet, full game page, make-offer and take-offer sheets. | Games tab | Best open offer per market |
+| R3 | **Bets and Groups.** Bets tab, Groups tab, group page (leaderboard, members, invite), votes, buyback and leave sheets. | Bets + Groups tabs | — |
+| R4 | **Me and the rest.** Me tab, friends, settings, notifications, blocked list, delete account, About & help, sign-in, username, empty states. | Me tab | — |
+| R5 | **Polish.** Light-mode pass, accessibility pass, independent code review, TESTING.md rewrite. | — | — |
+
 **Not planned for v1:** Android, live betting, parlays, player props, real-money anything, public groups, full group chat, websocket streams (possible later upgrade).

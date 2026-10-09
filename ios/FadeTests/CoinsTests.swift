@@ -19,3 +19,19 @@ final class CoinsTests: XCTestCase {
         XCTAssertEqual(Coins.fromWholeCoins(1), 100)
     }
 }
+
+final class CoinsDisplayTests: XCTestCase {
+    func testFixedAlwaysTwoDecimals() {
+        XCTAssertEqual(Coins.formatFixed(10000), "100.00")
+        XCTAssertEqual(Coins.formatFixed(12345), "123.45")
+        XCTAssertEqual(Coins.formatFixed(5), "0.05")
+        XCTAssertEqual(Coins.formatFixed(0), "0.00")
+        XCTAssertEqual(Coins.formatFixed(123_456_700), "1,234,567.00")
+    }
+
+    func testSignedUsesARealMinus() {
+        XCTAssertEqual(Coins.formatSigned(1250), "+12.50")
+        XCTAssertEqual(Coins.formatSigned(-800), "−8.00")
+        XCTAssertEqual(Coins.formatSigned(0), "0.00")
+    }
+}

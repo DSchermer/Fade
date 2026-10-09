@@ -14,5 +14,5 @@ run -d postgres -c "create database $db" >/dev/null
 run -d "$db" < "$here/../00_local_auth_stub.sql" >/dev/null
 for f in "$here"/../../migrations/*.sql; do run -d "$db" < "$f" >/dev/null; done
 ( cd "$here" && run -d "$db" < seed.sql >/dev/null )
-( cd "$out" && run -d "$db" < "$here/dump.sql" >/dev/null )
-cd "$here" && FADE_CONTRACT_DIR="$out" swift test 2>&1 | grep -E "error|failed|passed|Executed" | tail -15
+( cd "$out" && run -d "$db" -v "nhl_fixture=$(cat "$here/../fixtures/open_nhl_moneyline.json")" < "$here/dump.sql" >/dev/null )
+cd "$here" && FADE_CONTRACT_DIR="$out" swift test 2>&1 | grep -E "error|failed|Executed" | tail -25

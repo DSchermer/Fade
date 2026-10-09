@@ -8,12 +8,35 @@ import Supabase
 final class MarketStore {
     static let leagues = ["nfl", "nba", "mlb", "nhl"]
 
+    /// The Games tab: one entry per upcoming game with its main moneyline, spread and total.
+    var board: [GameLines] = []
     var games: [Game] = []
     var isLoading = false
     var errorMessage: String?
 
     private static let columns =
         "id, league, market_type, question, outcomes, line, game_start, event_id, event_title, outcome_prices"
+
+    private struct BoardParams: Encodable {
+        let league: String?
+
+        enum CodingKeys: String, CodingKey { case league = "p_league" }
+    }
+
+    /// Upcoming games for the Games tab (nil league = all four leagues).
+    func loadBoard(league: String?) async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let rows: [GameLines] = try await supabase.rpc("game_lines", params: BoardParams(league: league))
+                .execute()
+                .value
+            board = rows
+            errorMessage = nil
+        } catch {
+            errorMessage = "Couldn't load games: \(Session.describe(error))"
+        }
+    }
 
     /// Upcoming games, one per game, listed from its moneyline market.
     func loadGames(league: String?) async {

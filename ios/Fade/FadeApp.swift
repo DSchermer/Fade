@@ -9,6 +9,7 @@ struct FadeApp: App {
     @State private var offers = OfferStore()
     @State private var feed = FeedStore()
     @State private var friends = FriendStore()
+    @State private var router = AppRouter()
 
     var body: some Scene {
         WindowGroup {
@@ -19,6 +20,8 @@ struct FadeApp: App {
                 .environment(offers)
                 .environment(feed)
                 .environment(friends)
+                .environment(router)
+                .tint(Theme.accent)
                 .onOpenURL { session.handle(url: $0) }
                 .task { await session.restore() }
         }

@@ -12,7 +12,7 @@ struct RootView: View {
         case .needsUsername:
             UsernameView()
         case .ready:
-            HomeView()
+            MainTabView()
         }
     }
 }

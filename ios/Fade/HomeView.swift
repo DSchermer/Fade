@@ -3,9 +3,8 @@ import SwiftUI
 struct HomeView: View {
     @Environment(Session.self) private var session
     @Environment(GroupStore.self) private var groups
+    @Environment(AppRouter.self) private var router
     @State private var showSettings = false
-    @State private var showCreate = false
-    @State private var showJoin = false
     @State private var showFriends = false
 
     var body: some View {
@@ -17,9 +16,9 @@ struct HomeView: View {
                     } description: {
                         Text("Create a group for your friends, or join one with an invite code.")
                     } actions: {
-                        Button("Create a group") { showCreate = true }
+                        Button("Create a group") { router.sheet = .createGroup }
                             .buttonStyle(.borderedProminent)
-                        Button("Join with a code") { showJoin = true }
+                        Button("Join with a code") { router.sheet = .joinGroup }
                     }
                 } else {
                     List(groups.memberships) { membership in
@@ -46,8 +45,8 @@ struct HomeView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
-                        Button("Create a group", systemImage: "plus") { showCreate = true }
-                        Button("Join with a code", systemImage: "ticket") { showJoin = true }
+                        Button("Create a group", systemImage: "plus") { router.sheet = .createGroup }
+                        Button("Join with a code", systemImage: "ticket") { router.sheet = .joinGroup }
                     } label: {
                         Image(systemName: "plus.circle")
                     }
@@ -63,18 +62,15 @@ struct HomeView: View {
                 .padding()
             }
             .refreshable { await reload() }
+            .fadeTabBar()
             .task(id: session.profile?.id) {
                 await reload()
                 await PushManager.shared.registerIfAuthorized()
-                if session.pendingJoinCode != nil { showJoin = true }
+                if session.pendingJoinCode != nil { router.sheet = .joinGroup }
             }
             .sheet(isPresented: $showSettings) { SettingsView() }
-            .sheet(isPresented: $showCreate) { CreateGroupView() }
-            .sheet(isPresented: $showJoin, onDismiss: { session.pendingJoinCode = nil }) {
-                JoinGroupView(prefill: session.pendingJoinCode)
-            }
             .sheet(isPresented: $showFriends) { FriendsView() }
-            .onChange(of: session.pendingJoinCode) { _, code in if code != nil { showJoin = true } }
+            .onChange(of: session.pendingJoinCode) { _, code in if code != nil { router.sheet = .joinGroup } }
         }
     }
 

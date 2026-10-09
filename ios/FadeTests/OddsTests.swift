@@ -53,3 +53,35 @@ final class OddsTests: XCTestCase {
         XCTAssertEqual(Odds.bothText(cents: 40), "40¢ (+150)")
     }
 }
+
+final class PriceDisplayTests: XCTestCase {
+    func testPartsFollowTheViewersFormat() {
+        XCTAssertEqual(Odds.parts(cents: 58, format: .cents).main, "58¢")
+        XCTAssertEqual(Odds.parts(cents: 58, format: .cents).alt, "-138")
+        XCTAssertEqual(Odds.parts(cents: 58, format: .american).main, "-138")
+        XCTAssertEqual(Odds.parts(cents: 58, format: .american).alt, "58¢")
+        XCTAssertEqual(Odds.parts(cents: 0, format: .cents).main, "—")
+    }
+}
+
+final class PriceFieldTests: XCTestCase {
+    func testParse() {
+        XCTAssertEqual(Odds.parseCents("58", format: .cents), 58)
+        XCTAssertNil(Odds.parseCents("0", format: .cents))
+        XCTAssertNil(Odds.parseCents("100", format: .cents))
+        XCTAssertNil(Odds.parseCents("abc", format: .cents))
+        XCTAssertEqual(Odds.parseCents("-150", format: .american), 60)
+        XCTAssertEqual(Odds.parseCents("+150", format: .american), 40)
+        XCTAssertNil(Odds.parseCents("-50", format: .american))
+        XCTAssertEqual(Odds.parseCents(" 42 ", format: .cents), 42)
+    }
+
+    func testFieldTextRoundTrips() {
+        for cents in 1...99 {
+            let american = Odds.fieldText(cents: cents, format: .american)
+            XCTAssertEqual(Odds.parseCents(american, format: .american), cents, "\(cents)¢ → \(american)")
+            XCTAssertEqual(Odds.parseCents(Odds.fieldText(cents: cents, format: .cents), format: .cents), cents)
+        }
+        XCTAssertEqual(Odds.fieldText(cents: 0, format: .cents), "")
+    }
+}

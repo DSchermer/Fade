@@ -88,7 +88,7 @@ do $$
 declare actual text[]; expected text[] := array[
   'add_comment', 'app_now', 'block_user', 'buyback_status', 'call_vote', 'cancel_friend_request', 'cancel_offer', 'cast_vote',
   'claim_buyback', 'content_visible_to_me', 'create_group', 'delete_my_account', 'delete_my_comment', 'friend_scores',
-  'friend_suggestions', 'is_group_member', 'join_group', 'leave_group', 'market_is_open', 'market_phase', 'mute_user',
+  'friend_suggestions', 'game_lines', 'is_group_member', 'join_group', 'leave_group', 'market_is_open', 'market_phase', 'mute_user',
   'my_blocked_and_muted', 'my_friend_requests', 'my_notification_prefs', 'post_offer', 'register_device_token', 'remove_friend',
   'report_content', 'respond_friend_request', 'send_friend_request', 'set_notification_pref', 'set_username', 'shares_group_with',
   'take_offer', 'toggle_reaction', 'transfer_ownership', 'unblock_user', 'unmute_user', 'unregister_device_token', 'username_available'];

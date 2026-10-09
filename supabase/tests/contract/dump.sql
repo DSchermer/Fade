@@ -4,6 +4,9 @@
 \pset format unaligned
 \pset footer off
 
+-- one more upcoming game (the seed's own game has already been settled), so the Games list has something to show
+select ingest_markets('nhl', :'nhl_fixture'::jsonb, '2026-10-08 12:00+00');
+
 -- as alice
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', false);
 set role authenticated;
@@ -36,6 +39,8 @@ select coalesce(json_agg(t), '[]') from (select * from vote_listing) t;
 select coalesce(json_agg(t), '[]') from (select * from season_history) t;
 \o market_listing.json
 select coalesce(json_agg(t), '[]') from (select id, league, market_type, question, outcomes, line, game_start, event_id, event_title, outcome_prices from market_listing) t;
+\o game_lines.json
+select coalesce(json_agg(t), '[]') from game_lines() t;
 \o offer_listing.json
 select coalesce(json_agg(t), '[]') from (select * from offer_listing) t;
 \o bet_listing.json

@@ -19,7 +19,18 @@ final class ContractTests: XCTestCase {
         let rows: [FeedItem] = try load("feed_listing")
         XCTAssertGreaterThan(rows.count, 8)
         print("feed kinds:", Set(rows.map { $0.kind }).sorted())
-        for r in rows { _ = r.headline(.cents); _ = r.headline(.american); _ = r.subline }
+        // Everything the cards need must come through the real database view.
+        XCTAssertTrue(rows.allSatisfy { $0.groupName != nil }, "every item names its group")
+        XCTAssertTrue(rows.contains { $0.kind == "offer_posted" && $0.offerStatus != nil && $0.marketType != nil && $0.gameStart != nil })
+        XCTAssertTrue(rows.contains { $0.kind == "offer_taken" && $0.betStatus != nil && $0.marketType != nil })
+        XCTAssertTrue(rows.contains { $0.latestComment != nil }, "a comment preview comes through")
+        for r in rows {
+            _ = r.header; _ = r.title; _ = r.contextLine(); _ = r.statusBadge(); _ = r.canBeFaded()
+            XCTAssertFalse(r.header.verb.isEmpty)
+            XCTAssertFalse(r.title.isEmpty)
+        }
+        let posted = rows.filter { $0.kind == "offer_posted" }
+        XCTAssertTrue(posted.allSatisfy { $0.statusBadge() != nil && $0.refId != nil && $0.refType == "offer" })
     }
     func testComments() throws { let r: [CommentRow] = try load("comment_listing"); XCTAssertEqual(r.count, 2); print(r[0]) }
     func testBlocked() throws { let r: [BlockedUser] = try load("my_blocked_and_muted"); XCTAssertEqual(r.count, 1); print(r) }
@@ -35,6 +46,18 @@ final class ContractTests: XCTestCase {
     func testVotesB() throws { let r: [VoteRow] = try load("vote_listing_b"); XCTAssertGreaterThan(r.count, 2) }
     func testSeasons() throws { let r: [SeasonStandingRow] = try load("season_history"); XCTAssertGreaterThan(r.count, 1); print(r.prefix(2)) }
     func testMarkets() throws { let r: [MarketRow] = try load("market_listing"); XCTAssertGreaterThan(r.count, 5); print(r.prefix(2)) }
+    func testGameLines() throws {
+        let lines: [GameLines] = try load("game_lines")
+        XCTAssertGreaterThanOrEqual(lines.count, 1)
+        XCTAssertTrue(lines.allSatisfy { $0.mlOutcomes.count == 2 && !$0.mlMarket.isEmpty })
+        print("game lines:", lines.map { ($0.eventTitle, $0.spMarket as Any, $0.toMarket as Any) })
+        let offers: [OfferRow] = try load("offer_listing")
+        XCTAssertTrue(offers.allSatisfy { $0.eventId != nil }, "offers say which game they belong to")
+        // The whole list can be built from the real data without surprises.
+        let rows = GamesBoard.rows(lines: lines, offers: offers, now: Date(timeIntervalSince1970: 0))
+        XCTAssertEqual(rows.count, lines.count)
+        XCTAssertTrue(rows.allSatisfy { $0.cells.count == 2 && $0.cells[0].count == 3 })
+    }
     func testOffers() throws { let r: [OfferRow] = try load("offer_listing"); XCTAssertGreaterThan(r.count, 3); print(r.map { ($0.status, $0.sharesOpen) }) }
     func testOffersB() throws { let r: [OfferRow] = try load("offer_listing_b"); XCTAssertGreaterThan(r.count, 3) }
     func testBets() throws { let r: [BetRow] = try load("bet_listing"); XCTAssertGreaterThan(r.count, 3); print(r.map { ($0.status, $0.shares) }) }

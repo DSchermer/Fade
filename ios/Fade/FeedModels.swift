@@ -42,8 +42,15 @@ struct FeedPayload: Decodable {
     }
 }
 
+/// The newest visible comment on a feed item, shown as a preview on its card.
+struct LatestComment: Decodable {
+    let username: String?
+    let body: String
+}
+
 /// One entry in a group's feed, from the `feed_listing` view.
-struct FeedItem: Decodable, Identifiable {
+/// The fields after `myReactions` were added in migration 0015; they are optional so the app still works before it is applied.
+struct FeedItem: Decodable, Identifiable, Hashable {
     let id: UUID
     let groupId: UUID
     let kind: String
@@ -54,6 +61,15 @@ struct FeedItem: Decodable, Identifiable {
     let commentCount: Int
     let reactions: [String: Int]
     let myReactions: [String]
+    let refType: String?
+    let refId: UUID?
+    let groupName: String?
+    let offerStatus: String?
+    let offerSharesOpen: Int?
+    let marketType: String?
+    let gameStart: Date?
+    let betStatus: String?
+    let latestComment: LatestComment?
 
     enum CodingKeys: String, CodingKey {
         case id, kind, payload, reactions
@@ -63,48 +79,19 @@ struct FeedItem: Decodable, Identifiable {
         case createdAt = "created_at"
         case commentCount = "comment_count"
         case myReactions = "my_reactions"
+        case refType = "ref_type"
+        case refId = "ref_id"
+        case groupName = "group_name"
+        case offerStatus = "offer_status"
+        case offerSharesOpen = "offer_shares_open"
+        case marketType = "market_type"
+        case gameStart = "game_start"
+        case betStatus = "bet_status"
+        case latestComment = "latest_comment"
     }
 
-    var icon: String {
-        switch kind {
-        case "offer_posted": return "megaphone"
-        case "offer_taken": return "arrow.left.arrow.right"
-        case "bet_settled": return payload.result == "void" ? "arrow.uturn.backward.circle" : "checkmark.seal"
-        case "buyback": return "arrow.clockwise.circle"
-        default: return "hand.raised"
-        }
-    }
-
-    /// The sentence shown in the feed. Prices follow the viewer's chosen format.
-    func headline(_ format: PriceFormat) -> String {
-        let p = payload
-        func price(_ cents: Int?) -> String { cents.map { Odds.priceText(cents: $0, format: format) } ?? "" }
-        switch kind {
-        case "offer_posted":
-            return "@\(p.maker ?? "?") is backing \(p.side ?? "a side") at \(price(p.priceCents)) — \(p.shares ?? 0) shares"
-        case "offer_taken":
-            return "@\(p.taker ?? "?") took \(p.shares ?? 0) shares from @\(p.maker ?? "?"), backing \(p.takerSide ?? "the other side") at \(price(p.priceCents.map { 100 - $0 }))"
-        case "bet_settled":
-            if p.result == "void" {
-                return "Bet between @\(p.maker ?? "?") and @\(p.taker ?? "?") was voided — stakes refunded"
-            }
-            return "@\(p.winner ?? "?") beat @\(p.loser ?? "?") (\(p.winnerSide ?? "")) and won \(Coins.format(p.gain ?? 0)) coins"
-        case "buyback":
-            return "@\(p.who ?? "?") bought back in for \(Coins.format(p.amount ?? 0)) coins" + (p.via == "vote" ? " after a group vote" : "")
-        case "vote_called":
-            return p.voteKind == "reset"
-                ? "@\(p.caller ?? "?") called a vote to reset the group"
-                : "@\(p.caller ?? "?") asked the group for a buyback"
-        case "vote_result":
-            let what = p.voteKind == "reset" ? "The reset vote" : "@\(p.subject ?? "?")'s buyback vote"
-            return "\(what) \(p.status ?? "ended") (\(p.yes ?? 0) yes · \(p.no ?? 0) no)"
-        default:
-            return "Activity"
-        }
-    }
-
-    /// The game or detail line under the headline, if any.
-    var subline: String? { payload.eventTitle }
+    static func == (a: FeedItem, b: FeedItem) -> Bool { a.id == b.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }
 
 struct CommentRow: Decodable, Identifiable {

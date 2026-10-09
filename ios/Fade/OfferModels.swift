@@ -50,9 +50,12 @@ struct OfferRow: Decodable, Identifiable, MarketDescribing {
     let gameStart: Date
     let eventTitle: String
     let league: String
+    /// Which game this offer belongs to (added to the view's output for the Games tab).
+    let eventId: String?
 
     enum CodingKeys: String, CodingKey {
         case id, status, question, outcomes, line, outcome, league
+        case eventId = "event_id"
         case groupId = "group_id"
         case makerId = "maker_id"
         case makerUsername = "maker_username"

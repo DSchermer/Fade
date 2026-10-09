@@ -8,10 +8,12 @@ import Supabase
 final class FeedStore {
     var errorMessage: String?
 
-    func feed(groupID: UUID) async -> [FeedItem] {
+    /// The feed of one group, or (with no group) of every group I'm in, newest first.
+    func feed(groupID: UUID? = nil) async -> [FeedItem] {
         do {
-            let rows: [FeedItem] = try await supabase.from("feed_listing").select()
-                .eq("group_id", value: groupID)
+            var query = supabase.from("feed_listing").select()
+            if let groupID { query = query.eq("group_id", value: groupID) }
+            let rows: [FeedItem] = try await query
                 .order("created_at", ascending: false)
                 .limit(100)
                 .execute()

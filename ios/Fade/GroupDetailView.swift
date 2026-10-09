@@ -71,7 +71,7 @@ struct GroupDetailView: View {
 
             Section("Activity") {
                 NavigationLink {
-                    FeedView(groupID: group.id)
+                    GroupFeedView(groupID: group.id)
                 } label: {
                     Label("Group feed", systemImage: "text.bubble")
                 }

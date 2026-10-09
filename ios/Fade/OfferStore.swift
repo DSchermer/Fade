@@ -30,6 +30,16 @@ final class OfferStore {
         }
     }
 
+    /// One offer, as it stands right now (nil if it can't be seen).
+    func offer(id: UUID) async -> OfferRow? {
+        let rows: [OfferRow]? = try? await supabase.from("offer_listing").select()
+            .eq("id", value: id)
+            .limit(1)
+            .execute()
+            .value
+        return rows?.first
+    }
+
     /// The signed-in user's own offers in a group (newest first).
     func myOffers(groupID: UUID, userID: UUID) async -> [OfferRow] {
         do {

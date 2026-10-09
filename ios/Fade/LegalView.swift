@@ -1,15 +1,5 @@
 import SwiftUI
 
-/// The one-line reminder shown on the main screens.
-struct NoMoneyNotice: View {
-    var body: some View {
-        Text("Fade coins are free play money. They have no cash value and can't be bought, sold, or redeemed.")
-            .font(.footnote)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(.secondary)
-    }
-}
-
 /// Full statement + problem-gambling resources.
 struct LegalView: View {
     @Environment(\.dismiss) private var dismiss

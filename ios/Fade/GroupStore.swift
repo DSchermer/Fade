@@ -193,6 +193,17 @@ final class GroupStore {
         }
     }
 
+    /// Every vote that is open right now in any of my groups.
+    func openVotes() async -> [VoteRow] {
+        let rows: [VoteRow]? = try? await supabase.from("vote_listing").select()
+            .eq("status", value: "open")
+            .order("created_at", ascending: false)
+            .limit(50)
+            .execute()
+            .value
+        return rows ?? []
+    }
+
     private struct CallVoteParams: Encodable {
         let group: UUID
         let kind: String

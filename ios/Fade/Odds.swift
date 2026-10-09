@@ -27,6 +27,30 @@ enum Odds {
         format == .cents ? "\(cents)¢" : americanText(cents: cents)
     }
 
+    /// The price in the viewer's format first, the other format beside it: 58 → ("58¢", "-138") or ("-138", "58¢").
+    static func parts(cents: Int, format: PriceFormat) -> (main: String, alt: String) {
+        guard (1...99).contains(cents) else { return ("—", "") }
+        let c = "\(cents)¢"
+        let a = americanText(cents: cents)
+        return format == .cents ? (c, a) : (a, c)
+    }
+
+    /// What was typed in the price box → whole cents, or nil if it isn't valid in that format.
+    /// American odds that don't land on a whole cent are rounded to the nearest cent (the screen shows the real price).
+    static func parseCents(_ text: String, format: PriceFormat) -> Int? {
+        guard let n = Int(text.trimmingCharacters(in: .whitespaces)) else { return nil }
+        switch format {
+        case .cents: return (1...99).contains(n) ? n : nil
+        case .american: return cents(fromAmerican: n)
+        }
+    }
+
+    /// The text to put in the price box for a price: "58" in cents, "-138" in American.
+    static func fieldText(cents: Int, format: PriceFormat) -> String {
+        guard (1...99).contains(cents) else { return "" }
+        return format == .cents ? String(cents) : americanText(cents: cents)
+    }
+
     /// "60¢ (-150)" — both, for confirmation screens.
     static func bothText(cents: Int) -> String {
         "\(cents)¢ (\(americanText(cents: cents)))"
